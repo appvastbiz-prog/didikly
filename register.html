@@ -17,15 +17,30 @@
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
     });
 
-    document.getElementById("result").innerText =
-      error ? error.message : "Registered";
+    if (error) {
+      document.getElementById("result").innerText = error.message;
+      return;
+    }
+
+    // Create profile row
+    const user = data.user;
+
+    if (user) {
+      await supabase.from("profiles").insert({
+        id: user.id,
+        role: "student",
+      });
+    }
+
+    document.getElementById("result").innerText = "Registered";
   };
 </script>
+
 
 
 </body>
