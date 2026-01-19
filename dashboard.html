@@ -5,7 +5,23 @@
 <h2>Dashboard</h2>
 
 <p id="user"></p>
+
+<div id="student" style="display:none;">
+  <h3>Student</h3>
+  <ul>
+    <li><a href="/mode.html">Select learning mode</a></li>
+  </ul>
+</div>
+
+<div id="tutor" style="display:none;">
+  <h3>Tutor</h3>
+  <ul>
+    <li><a href="#">Set availability (coming soon)</a></li>
+  </ul>
+</div>
+
 <button onclick="logout()">Logout</button>
+
 
 <script type="module">
   import { supabase } from "./supabase.js";
@@ -20,20 +36,22 @@
       return;
     }
 
-    const { data: profile, error } = await supabase
+    const { data: profile } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .single();
 
-    if (error) {
-      document.getElementById("user").innerText =
-        "Logged in as: " + user.email + " (no role)";
-      return;
-    }
-
     document.getElementById("user").innerText =
       "Logged in as: " + user.email + " (" + profile.role + ")";
+
+    if (profile.role === "student") {
+      document.getElementById("student").style.display = "block";
+    }
+
+    if (profile.role === "tutor") {
+      document.getElementById("tutor").style.display = "block";
+    }
   }
 
   window.logout = async function () {
@@ -43,6 +61,7 @@
 
   loadUser();
 </script>
+
 
 
 
