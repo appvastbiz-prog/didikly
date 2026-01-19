@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Select Learning Mode</h2>
+
+<select id="mode">
+  <option value="formal_speaking">Formal Speaking</option>
+  <option value="conversational_speaking">Conversational Speaking</option>
+  <option value="writing">Writing</option>
+</select>
+
+<button onclick="saveMode()">Save</button>
+
+<p id="result"></p>
+
+<script type="module">
+  import { supabase } from "./supabase.js";
+
+  window.saveMode = async function () {
+    const mode = document.getElementById("mode").value;
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      document.getElementById("result").innerText = "Not logged in";
+      return;
+    }
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ mode })
+      .eq("id", user.id);
+
+    document.getElementById("result").innerText =
+      error ? error.message : "Mode saved";
+  };
+</script>
+
+</body>
+</html>
