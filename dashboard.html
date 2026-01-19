@@ -20,8 +20,20 @@
       return;
     }
 
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    if (error) {
+      document.getElementById("user").innerText =
+        "Logged in as: " + user.email + " (no role)";
+      return;
+    }
+
     document.getElementById("user").innerText =
-      "Logged in as: " + user.email;
+      "Logged in as: " + user.email + " (" + profile.role + ")";
   }
 
   window.logout = async function () {
@@ -31,6 +43,7 @@
 
   loadUser();
 </script>
+
 
 </body>
 </html>
