@@ -15,34 +15,33 @@
       data: { user },
     } = await supabase.auth.getUser();
 
+    console.log("AUTH USER:", user);
+
     if (!user) {
       document.getElementById("user").innerText = "Not logged in";
       return;
     }
 
-    const { data: profile, error } = await supabase
+    const { data, error } = await supabase
       .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
+      .select("*")
+      .eq("id", user.id);
 
-    if (error) {
+    console.log("PROFILE QUERY RESULT:", data, error);
+
+    if (!data || data.length === 0) {
       document.getElementById("user").innerText =
-        "Logged in as: " + user.email + " (no role)";
+        "Logged in as: " + user.email + " (NO PROFILE ROW)";
       return;
     }
 
     document.getElementById("user").innerText =
-      "Logged in as: " + user.email + " (" + profile.role + ")";
+      "Logged in as: " + user.email + " (" + data[0].role + ")";
   }
-
-  window.logout = async function () {
-    await supabase.auth.signOut();
-    window.location.href = "/login.html";
-  };
 
   loadUser();
 </script>
+
 
 
 </body>
