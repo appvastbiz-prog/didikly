@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Available Tutors</h2>
+
+<ul id="tutorList"></ul>
+
+<script type="module">
+  import { supabase } from "./supabase.js";
+
+  async function loadTutors() {
+    const { data: tutors, error } = await supabase
+      .from("profiles")
+      .select("id, mode, availability")
+      .eq("role", "tutor");
+
+    if (error) {
+      console.error(error);
+      return;
+    }
+
+    const list = document.getElementById("tutorList");
+
+    tutors.forEach(tutor => {
+      const li = document.createElement("li");
+
+      const anonName = "Tutor-" + tutor.id.slice(-4);
+
+      li.innerHTML = `
+        <strong>${anonName}</strong><br>
+        Mode: ${tutor.mode || "Not set"}<br>
+        Availability: ${tutor.availability || "Not set"}
+      `;
+
+      list.appendChild(li);
+    });
+  }
+
+  loadTutors();
+</script>
+
+</body>
+</html>
