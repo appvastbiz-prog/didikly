@@ -11,6 +11,9 @@
 <p id="result"></p>
 
 <script type="module">
+
+  console.log("URL:", window.location.href);
+
   import { supabase } from "./supabase.js";
   import { requireRole } from "./guard.js";
 
@@ -22,6 +25,7 @@
 
   const params = new URLSearchParams(window.location.search);
   const sessionId = params.get("session");
+  console.log("SESSION ID PARAM:", sessionId);
 
   window.submitReview = async function () {
     const comment = document.getElementById("comment").value;
