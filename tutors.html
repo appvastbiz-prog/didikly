@@ -7,6 +7,15 @@
 <ul id="tutorList"></ul>
 
 <script type="module">
+
+  import { requireRole } from "./guard.js";
+
+  const access = await requireRole(["student"]);
+  if (!access.ok) {
+    document.body.innerHTML = "Access denied";
+    throw new Error("Blocked");
+  }
+
   import { supabase } from "./supabase.js";
 
   async function loadTutors() {
