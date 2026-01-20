@@ -31,11 +31,35 @@
       return;
     }
 
-    document.getElementById("info").innerHTML = `
-      Session ID: ${id}<br>
-      Mode: ${session.mode}<br><br>
-      <a href="/review.html?session=${id}">Leave review</a>
-    `;
+    const role = access.role;
+
+  let actions = "";
+  
+  if (role === "tutor" && session.status === "accepted") {
+    actions = `<button id="complete">Mark completed</button>`;
+  }
+  
+  if (role === "student" && session.status === "completed") {
+    actions = `<a href="/review.html?session=${id}">Leave review</a>`;
+  }
+  
+  document.getElementById("info").innerHTML = `
+    Session ID: ${id}<br>
+    Mode: ${session.mode}<br>
+    Status: ${session.status}<br><br>
+    ${actions}
+  `;
+  
+  if (role === "tutor" && session.status === "accepted") {
+    document.getElementById("complete").onclick = async () => {
+      await supabase
+        .from("sessions")
+        .update({ status: "completed" })
+        .eq("id", id);
+      location.reload();
+    };
+  }
+
   }
 
   load();
