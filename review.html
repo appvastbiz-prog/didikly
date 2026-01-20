@@ -29,30 +29,39 @@
 
   window.submitReview = async function () {
     const comment = document.getElementById("comment").value;
-
+  
     const { data: { user } } = await supabase.auth.getUser();
-
-    const { data: session, error: sessionError } = await supabase
+  
+    // Check if review already exists
+    const { data: existing } = await supabase
+      .from("reviews")
+      .select("id")
+      .eq("session_id", sessionId)
+      .single();
+  
+    if (existing) {
+      document.getElementById("result").innerText =
+        "You already submitted a review for this session.";
+      return;
+    }
+  
+    const { data: session } = await supabase
       .from("sessions")
       .select("*")
       .eq("id", sessionId)
       .single();
-
-    if (sessionError) {
-      document.getElementById("result").innerText = sessionError.message;
-      return;
-    }
-
+  
     const { error } = await supabase.from("reviews").insert({
       session_id: sessionId,
       tutor_id: session.tutor_id,
       student_id: user.id,
       comment,
     });
-
+  
     document.getElementById("result").innerText =
       error ? error.message : "Review submitted";
   };
+
 </script>
 
 
