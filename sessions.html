@@ -26,7 +26,8 @@
       .from("sessions")
       .select("*")
       .or(`student_id.eq.${user.id},tutor_id.eq.${user.id}`)
-      .eq("status", "accepted");
+      .in("status", ["accepted", "completed"]);
+
 
     const list = document.getElementById("list");
 
