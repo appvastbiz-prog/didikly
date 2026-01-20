@@ -15,6 +15,15 @@ Enter your available times (example: Mon–Fri 8pm–10pm)
 <p id="result"></p>
 
 <script type="module">
+
+  import { requireRole } from "./guard.js";
+
+  const access = await requireRole(["tutor"]);
+  if (!access.ok) {
+    document.body.innerHTML = "Access denied";
+    throw new Error("Blocked");
+  }
+  
   import { supabase } from "./supabase.js";
 
   window.saveAvailability = async function () {
