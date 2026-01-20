@@ -29,9 +29,12 @@
       .eq("id", id)
       .single();
 
-    document.getElementById("info").innerText =
-      "Session ID: " + id + " | Mode: " + session.mode;
-  }
+    document.getElementById("info").innerHTML = `
+  Session ID: ${id} | Mode: ${session.mode}
+  <br><br>
+  <a href="/review.html?session=${id}">Leave review</a>
+`;
+
 
   load();
 </script>
