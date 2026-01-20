@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<h2>Session Requests</h2>
+
+<ul id="requests"></ul>
+
+<script type="module">
+  import { supabase } from "./supabase.js";
+
+  async function loadRequests() {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return;
+
+    const { data: sessions } = await supabase
+      .from("sessions")
+      .select("*")
+      .eq("tutor_id", user.id)
+      .eq("status", "requested");
+
+    const list = document.getElementById("requests");
+
+    sessions.forEach(s => {
+      const li = document.createElement("li");
+      li.innerHTML = `
+        Student: ${s.student_id.slice(-4)} |
+        Mode: ${s.mode}
+        <button onclick="accept('${s.id}')">Accept</button>
+      `;
+      list.appendChild(li);
+    });
+  }
+
+  window.accept = async function (sessionId) {
+    await supabase
+      .from("sessions")
+      .update({ status: "accepted" })
+      .eq("id", sessionId);
+
+    location.reload();
+  };
+
+  loadRequests();
+</script>
+
+</body>
+</html>
