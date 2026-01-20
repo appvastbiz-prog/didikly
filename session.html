@@ -4,11 +4,10 @@
 
 <h2>Session</h2>
 <p id="info"></p>
-<a href="/review.html?session=${id}">Leave review</a>
 <p>Video coming next.</p>
 
 <script type="module">
-
+  import { supabase } from "./supabase.js";
   import { requireRole } from "./guard.js";
 
   const access = await requireRole(["student", "tutor"]);
@@ -16,28 +15,32 @@
     document.body.innerHTML = "Access denied";
     throw new Error("Blocked");
   }
-  
-  import { supabase } from "./supabase.js";
 
   const params = new URLSearchParams(window.location.search);
   const id = params.get("id");
 
   async function load() {
-    const { data: session } = await supabase
+    const { data: session, error } = await supabase
       .from("sessions")
       .select("*")
       .eq("id", id)
       .single();
 
-    document.getElementById("info").innerHTML = `
-  Session ID: ${id} | Mode: ${session.mode}
-  <br><br>
-  <a href="/review.html?session=${id}">Leave review</a>
-`;
+    if (error) {
+      document.getElementById("info").innerText = error.message;
+      return;
+    }
 
+    document.getElementById("info").innerHTML = `
+      Session ID: ${id}<br>
+      Mode: ${session.mode}<br><br>
+      <a href="/review.html?session=${id}">Leave review</a>
+    `;
+  }
 
   load();
 </script>
+
 
 </body>
 </html>
