@@ -17,6 +17,16 @@
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
 
+    const allowed = [".edu", ".edu.my", ".ac.uk", ".ac.jp"];
+    const email = document.getElementById("email").value;
+    const domainOk = allowed.some(d => email.endsWith(d));
+    
+    if (!domainOk) {
+      document.getElementById("result").innerText =
+        "Please use a university email address.";
+      return;
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
