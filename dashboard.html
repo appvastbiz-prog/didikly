@@ -41,11 +41,22 @@
       return;
     }
 
-    const { data: profile } = await supabase
+    let { data: profile, error } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .single();
+    
+    // 👇 AUTO-CREATE PROFILE IF MISSING
+    if (!profile) {
+      await supabase.from("profiles").insert({
+        id: user.id,
+        role: "student",
+      });
+    
+      profile = { role: "student" };
+    }
+
 
     document.getElementById("user").innerText =
       "Logged in as: " + user.email + " (" + profile.role + ")";
