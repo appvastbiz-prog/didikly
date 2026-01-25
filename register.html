@@ -13,14 +13,11 @@
 <script type="module">
   import { supabase } from "./supabase.js";
 
-  console.log("REGISTER SCRIPT LOADED");
-
   window.register = async function () {
-    console.log("REGISTER FUNCTION CALLED");
-
     const email = document.getElementById("email").value;
     const password = document.getElementById("password").value;
 
+    // University email check
     const allowed = [".edu", ".edu.my", ".ac.uk", ".ac.jp"];
     const domainOk = allowed.some(d => email.endsWith(d));
 
@@ -30,21 +27,21 @@
       return;
     }
 
-    const result = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email,
       password,
     });
 
-    console.log("SIGNUP RESULT:", result);
-
-    if (result.error) {
-      document.getElementById("result").innerText = result.error.message;
+    if (error) {
+      document.getElementById("result").innerText = error.message;
       return;
     }
 
-    document.getElementById("result").innerText = "Registered";
+    document.getElementById("result").innerText =
+      "Registered. Please log in.";
   };
 </script>
+
 
 
 
