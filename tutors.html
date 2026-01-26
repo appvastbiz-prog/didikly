@@ -16,10 +16,14 @@
   import { requireRole } from "./guard.js";
 
   const access = await requireRole(["student"]);
-  if (!access.ok) {
-    document.getElementById("loading").innerText = "Access denied";
-    return;
-  }
+    if (!access.ok) {
+      document.getElementById("loading").innerText = "Access denied";
+      return;
+    }
+    
+    // ✅ ACCESS OK — stop showing loading now
+    document.getElementById("loading").style.display = "none";
+
 
   async function loadTutors() {
     const { data: tutors, error } = await supabase
