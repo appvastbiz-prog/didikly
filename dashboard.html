@@ -41,8 +41,6 @@
       return;
     }
 
-    }
-
     let { data: profile, error } = await supabase
       .from("profiles")
       .select("role")
