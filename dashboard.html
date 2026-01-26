@@ -2,6 +2,8 @@
 <html>
 <body>
 
+<p id="loading">Loading...</p>
+
 <h2>
   <a href="/dashboard.html" style="text-decoration:none; color:inherit;">
     Dashboard
@@ -47,11 +49,20 @@
       return;
     }
 
+    // Hide loading once auth check passes
+    document.getElementById("loading").style.display = "none";
+
     let { data: profile, error } = await supabase
       .from("profiles")
       .select("role")
       .eq("id", user.id)
       .single();
+    
+    if (error && error.code !== "PGRST116") {
+      document.getElementById("user").innerText =
+        "Failed to load profile.";
+      return;
+    }
     
     // 👇 AUTO-CREATE PROFILE IF MISSING
     if (!profile) {
