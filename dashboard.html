@@ -37,8 +37,10 @@
     } = await supabase.auth.getUser();
 
     if (!user) {
-      document.getElementById("user").innerText = "Not logged in";
+      window.location.href = "/login.html";
       return;
+    }
+
     }
 
     let { data: profile, error } = await supabase
