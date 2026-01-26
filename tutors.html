@@ -5,6 +5,8 @@
 <a href="/dashboard.html">← Dashboard</a>
 <hr>
 
+<p id="loading">Loading...</p>
+
 <h2>Available Tutors</h2>
 
 <ul id="tutorList"></ul>
@@ -15,8 +17,8 @@
 
   const access = await requireRole(["student"]);
   if (!access.ok) {
-    document.body.innerHTML = "Access denied";
-    throw new Error("Blocked");
+    document.getElementById("loading").innerText = "Access denied";
+    return;
   }
 
   async function loadTutors() {
@@ -26,9 +28,18 @@
       .eq("role", "tutor");
 
     if (error) {
-      console.error(error);
+      document.getElementById("loading").innerText =
+        "Failed to load tutors.";
       return;
     }
+  
+    if (!tutors || tutors.length === 0) {
+      document.getElementById("tutorList").innerText =
+        "No tutors available yet.";
+      document.getElementById("loading").style.display = "none";
+      return;
+    }
+
 
     const list = document.getElementById("tutorList");
 
@@ -56,6 +67,8 @@
 
       list.appendChild(li);
     }
+
+    document.getElementById("loading").style.display = "none";
   }
 
   loadTutors();
