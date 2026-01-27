@@ -5,14 +5,11 @@
 <a href="/dashboard.html">← Dashboard</a>
 <hr>
 
+<p id="loading">Loading...</p>
+
 <h2>Set Availability</h2>
 
-<p>
-Enter your available times (example: Mon–Fri 8pm–10pm)
-</p>
-
-<textarea id="availability" rows="4" cols="40"></textarea>
-<br><br>
+<input id="availability" placeholder="e.g. Weekends" />
 <button onclick="saveAvailability()">Save</button>
 
 <p id="result"></p>
@@ -51,7 +48,6 @@ Enter your available times (example: Mon–Fri 8pm–10pm)
 
   init();
 </script>
-
 
 </body>
 </html>
