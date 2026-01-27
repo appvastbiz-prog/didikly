@@ -5,13 +5,17 @@
 <a href="/dashboard.html">← Dashboard</a>
 <hr>
 
+<p id="loading">Loading...</p>
+
 <h2>Session</h2>
 <p id="info"></p>
-<p>Video coming next.</p>
 
 <script type="module">
   import { supabase } from "./supabase.js";
   import { requireRole } from "./guard.js";
+
+  const params = new URLSearchParams(window.location.search);
+  const id = params.get("id");
 
   async function init() {
     const access = await requireRole(["student", "tutor"]);
@@ -23,9 +27,6 @@
     document.getElementById("loading").style.display = "none";
     await load(access.role);
   }
-
-  const params = new URLSearchParams(window.location.search);
-  const id = params.get("id");
 
   async function load(role) {
     const { data: session, error } = await supabase
@@ -69,7 +70,6 @@
 
   init();
 </script>
-
 
 </body>
 </html>
