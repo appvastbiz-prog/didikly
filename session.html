@@ -13,16 +13,21 @@
   import { supabase } from "./supabase.js";
   import { requireRole } from "./guard.js";
 
-  const access = await requireRole(["student", "tutor"]);
-  if (!access.ok) {
-    document.body.innerHTML = "Access denied";
-    throw new Error("Blocked");
+  async function init() {
+    const access = await requireRole(["student", "tutor"]);
+    if (!access.ok) {
+      document.getElementById("loading").innerText = "Access denied";
+      return;
+    }
+
+    document.getElementById("loading").style.display = "none";
+    await load(access.role);
   }
 
   const params = new URLSearchParams(window.location.search);
   const id = params.get("id");
 
-  async function load() {
+  async function load(role) {
     const { data: session, error } = await supabase
       .from("sessions")
       .select("*")
@@ -34,38 +39,35 @@
       return;
     }
 
-    const role = access.role;
+    let actions = "";
 
-  let actions = "";
-  
-  if (role === "tutor" && session.status === "accepted") {
-    actions = `<button id="complete">Mark completed</button>`;
-  }
-  
-  if (role === "student" && session.status === "completed") {
-    actions = `<a href="/review.html?session=${id}">Leave review</a>`;
-  }
-  
-  document.getElementById("info").innerHTML = `
-    Session ID: ${id}<br>
-    Mode: ${session.mode}<br>
-    Status: ${session.status}<br><br>
-    ${actions}
-  `;
-  
-  if (role === "tutor" && session.status === "accepted") {
-    document.getElementById("complete").onclick = async () => {
-      await supabase
-        .from("sessions")
-        .update({ status: "completed" })
-        .eq("id", id);
-      location.reload();
-    };
-  }
+    if (role === "tutor" && session.status === "accepted") {
+      actions = `<button id="complete">Mark completed</button>`;
+    }
 
+    if (role === "student" && session.status === "completed") {
+      actions = `<a href="/review.html?session=${id}">Leave review</a>`;
+    }
+
+    document.getElementById("info").innerHTML = `
+      Session ID: ${id}<br>
+      Mode: ${session.mode}<br>
+      Status: ${session.status}<br><br>
+      ${actions}
+    `;
+
+    if (role === "tutor" && session.status === "accepted") {
+      document.getElementById("complete").onclick = async () => {
+        await supabase
+          .from("sessions")
+          .update({ status: "completed" })
+          .eq("id", id);
+        location.reload();
+      };
+    }
   }
 
-  load();
+  init();
 </script>
 
 
