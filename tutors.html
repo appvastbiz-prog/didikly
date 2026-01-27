@@ -12,21 +12,8 @@
 <ul id="tutorList"></ul>
 
 <script type="module">
-
-  console.log("TUTORS SCRIPT START");
-
   import { supabase } from "./supabase.js";
   import { requireRole } from "./guard.js";
-
-  const access = await requireRole(["student"]);
-    if (!access.ok) {
-      document.getElementById("loading").innerText = "Access denied";
-      return;
-    }
-    
-    // ✅ ACCESS OK — stop showing loading now
-    document.getElementById("loading").style.display = "none";
-
 
   async function loadTutors() {
     const { data: tutors, error } = await supabase
@@ -39,14 +26,12 @@
         "Failed to load tutors.";
       return;
     }
-  
+
     if (!tutors || tutors.length === 0) {
       document.getElementById("tutorList").innerText =
         "No tutors available yet.";
-      document.getElementById("loading").style.display = "none";
       return;
     }
-
 
     const list = document.getElementById("tutorList");
 
@@ -58,7 +43,7 @@
         .select("comment")
         .eq("tutor_id", tutor.id);
 
-      const reviewText = reviews.length
+      const reviewText = reviews && reviews.length
         ? reviews.map(r => `• ${r.comment}`).join("<br>")
         : "No reviews yet";
 
@@ -74,12 +59,28 @@
 
       list.appendChild(li);
     }
-
-    document.getElementById("loading").style.display = "none";
   }
 
-  loadTutors();
+  async function init() {
+    console.log("TUTORS SCRIPT START");
+
+    const access = await requireRole(["student"]);
+    console.log("ACCESS RESULT:", access);
+
+    if (!access.ok) {
+      document.getElementById("loading").innerText = "Access denied";
+      return;
+    }
+
+    document.getElementById("loading").style.display = "none";
+
+    await loadTutors();
+  }
+
+  // ✅ THIS WAS MISSING
+  init();
 </script>
+
 
 
 </body>
