@@ -5,9 +5,11 @@
 <a href="/dashboard.html">← Dashboard</a>
 <hr>
 
+<p id="loading">Loading...</p>
+
 <h2>Leave Review</h2>
 
-<textarea id="comment" rows="4" cols="40" placeholder="Your feedback"></textarea>
+<textarea id="comment" rows="4" cols="40"></textarea>
 <br><br>
 <button onclick="submitReview()">Submit</button>
 
@@ -16,6 +18,9 @@
 <script type="module">
   import { supabase } from "./supabase.js";
   import { requireRole } from "./guard.js";
+
+  const params = new URLSearchParams(window.location.search);
+  const sessionId = params.get("session");
 
   async function init() {
     const access = await requireRole(["student"]);
@@ -26,9 +31,6 @@
 
     document.getElementById("loading").style.display = "none";
   }
-
-  const params = new URLSearchParams(window.location.search);
-  const sessionId = params.get("session");
 
   window.submitReview = async function () {
     const comment = document.getElementById("comment").value;
@@ -67,8 +69,6 @@
 
   init();
 </script>
-
-
 
 </body>
 </html>
