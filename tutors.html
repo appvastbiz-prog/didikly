@@ -62,26 +62,18 @@
   }
 
   async function init() {
-    console.log("TUTORS SCRIPT START");
-
     const access = await requireRole(["student"]);
-    console.log("ACCESS RESULT:", access);
-
     if (!access.ok) {
       document.getElementById("loading").innerText = "Access denied";
       return;
     }
 
     document.getElementById("loading").style.display = "none";
-
     await loadTutors();
   }
 
-  // ✅ THIS WAS MISSING
   init();
 </script>
-
-
 
 </body>
 </html>
