@@ -18,16 +18,18 @@
 <p id="result"></p>
 
 <script type="module">
-
+  import { supabase } from "./supabase.js";
   import { requireRole } from "./guard.js";
 
-  const access = await requireRole(["student"]);
-  if (!access.ok) {
-    document.body.innerHTML = "Access denied";
-    throw new Error("Blocked");
-  }
+  async function init() {
+    const access = await requireRole(["student"]);
+    if (!access.ok) {
+      document.getElementById("loading").innerText = "Access denied";
+      return;
+    }
 
-  import { supabase } from "./supabase.js";
+    document.getElementById("loading").style.display = "none";
+  }
 
   window.saveMode = async function () {
     const mode = document.getElementById("mode").value;
@@ -49,7 +51,10 @@
     document.getElementById("result").innerText =
       error ? error.message : "Mode saved";
   };
+
+  init();
 </script>
+
 
 </body>
 </html>
