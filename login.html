@@ -29,31 +29,13 @@
 
   <script type="module">
     import { supabase } from "./supabase.js";
-
     window.login = async function () {
-      const email = document.getElementById("email").value.trim();
+      const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
-
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        document.getElementById("result").innerText = error.message;
-        return;
-      }
-
-      // Ensure session exists before redirect
-      const { data: sessionData } = await supabase.auth.getSession();
-      if (!sessionData.session) {
-        document.getElementById("result").innerText =
-          "Login failed. Please try again.";
-        return;
-      }
-
+      const {error} = await supabase.auth.signInWithPassword({ email, password });
       window.location.href = "/dashboard.html";
     };
   </script>
 </body>
 </html>
+
