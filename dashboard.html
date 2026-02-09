@@ -21,7 +21,7 @@
 
     <p id="loading" class="muted">Loading...</p>
 
-    <div class="card">
+    <div class="card" id="card" style="display:none;">
       <h2>Dashboard</h2>
       <p id="user" class="muted"></p>
 
@@ -50,13 +50,17 @@
     import { supabase } from "./supabase.js";
 
     async function loadUser() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
+      const { data: sessionData } = await supabase.auth.getSession();
+
+      if (!sessionData.session) {
         window.location.href = "/login.html";
         return;
       }
 
+      const user = sessionData.session.user;
+
       document.getElementById("loading").style.display = "none";
+      document.getElementById("card").style.display = "block";
 
       let { data: profile } = await supabase
         .from("profiles")
