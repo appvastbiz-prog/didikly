@@ -2,35 +2,46 @@
 <html>
 <head>
   <title>Didikly</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body { font-family: system-ui, sans-serif; background:#0f172a; color:#e5e7eb; margin:0; }
+    .container { max-width:720px; margin:0 auto; padding:48px 24px; text-align:center; }
+    .card { background:#020617; padding:24px; border-radius:12px; margin-top:32px; text-align:left; }
+    a { color:#38bdf8; text-decoration:none; }
+    .muted { color:#94a3b8; }
+  </style>
 </head>
 <body>
-  <h1>Didikly</h1>
-  
-  <p>
-  One-to-one learning for university students.
-  </p>
-  
-  <h2>What you can do</h2>
-  <ul>
-    <li>Practice formal speaking</li>
-    <li>Practice conversational speaking</li>
-    <li>Get writing feedback</li>
-  </ul>
-  
-  <h2>Who it’s for</h2>
-  <ul>
-    <li>University students</li>
-    <li>Peer tutors</li>
-  </ul>
-  
-  <h2>Privacy</h2>
-  <p>
-  Tutors are verified by the platform but may appear anonymous to learners.
-  </p>
-  
-  <p>
-  Launching soon.
-  </p>
+  <div class="container">
+    <h1>Didikly</h1>
+    <p class="muted">One-to-one language practice for university students</p>
 
+    <div class="card">
+      <h3>What you can do</h3>
+      <ul>
+        <li>Practice conversational speaking</li>
+        <li>Practice formal speaking</li>
+        <li>Get writing feedback</li>
+      </ul>
+
+      <h3>Who it’s for</h3>
+      <ul>
+        <li>University students</li>
+        <li>Peer tutors</li>
+      </ul>
+
+      <h3>Privacy</h3>
+      <p class="muted">
+        Tutors are verified by the platform but may appear anonymous to learners.
+      </p>
+
+      <p class="muted">Pilot launching soon.</p>
+
+      <p>
+        <a href="/register.html">Register</a> ·
+        <a href="/login.html">Login</a>
+      </p>
+    </div>
+  </div>
 </body>
 </html>
