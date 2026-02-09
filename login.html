@@ -32,7 +32,7 @@
     window.login = async function () {
       const email = document.getElementById("email").value;
       const password = document.getElementById("password").value;
-      await supabase.auth.signInWithPassword({ email, password });
+      const {error} = await supabase.auth.signInWithPassword({ email, password });
       window.location.href = "/dashboard.html";
     };
   </script>
