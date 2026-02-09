@@ -1,103 +1,92 @@
 <!DOCTYPE html>
 <html>
+<head>
+  <title>Dashboard – Didikly</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body { font-family: system-ui, sans-serif; background:#0f172a; color:#e5e7eb; margin:0; }
+    .container { max-width:720px; margin:0 auto; padding:24px; }
+    .topbar { display:flex; justify-content:space-between; align-items:center; margin-bottom:24px; }
+    .card { background:#020617; padding:24px; border-radius:12px; }
+    a { color:#38bdf8; text-decoration:none; }
+    .muted { color:#94a3b8; }
+  </style>
+</head>
 <body>
+  <div class="container">
+    <div class="topbar">
+      <strong>Didikly</strong>
+      <a href="#" onclick="logout()">Logout</a>
+    </div>
 
-<p id="loading">Loading...</p>
+    <p id="loading" class="muted">Loading...</p>
 
-<h2>
-  <a href="/dashboard.html" style="text-decoration:none; color:inherit;">
-    Dashboard
-  </a>
-</h2>
-<hr>
+    <div class="card">
+      <h2>Dashboard</h2>
+      <p id="user" class="muted"></p>
 
+      <div id="student" style="display:none;">
+        <h3>Student</h3>
+        <ul>
+          <li><a href="/mode.html">Select learning mode</a></li>
+          <li><a href="/tutors.html">View tutors</a></li>
+          <li><a href="/request.html">Request session</a></li>
+          <li><a href="/sessions.html">My sessions</a></li>
+        </ul>
+      </div>
 
-<p id="user"></p>
+      <div id="tutor" style="display:none;">
+        <h3>Tutor</h3>
+        <ul>
+          <li><a href="/availability.html">Set availability</a></li>
+          <li><a href="/requests.html">View session requests</a></li>
+          <li><a href="/sessions.html">My sessions</a></li>
+        </ul>
+      </div>
+    </div>
+  </div>
 
-<div id="student" style="display:none;">
-  <h3>Student</h3>
-  <ul>
-    <li><a href="/mode.html">Select learning mode</a></li>
-    <li><a href="/tutors.html">View tutors</a></li>
-    <li><a href="/request.html">Request session</a></li>
-    <li><a href="/sessions.html">My sessions</a></li>
-  </ul>
-</div>
+  <script type="module">
+    import { supabase } from "./supabase.js";
 
-<div id="tutor" style="display:none;">
-  <h3>Tutor</h3>
-  <ul>
-    <li><a href="/availability.html">Set availability</a></li>
-    <li><a href="/requests.html">View session requests</a></li>
-    <li><a href="/sessions.html">My sessions</a></li>
-  </ul>
-</div>
+    async function loadUser() {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        window.location.href = "/login.html";
+        return;
+      }
 
-<button onclick="logout()">Logout</button>
+      document.getElementById("loading").style.display = "none";
 
+      let { data: profile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("id", user.id)
+        .single();
 
-<script type="module">
-  import { supabase } from "./supabase.js";
+      if (!profile) {
+        await supabase.from("profiles").insert({ id: user.id, role: "student" });
+        profile = { role: "student" };
+      }
 
-  async function loadUser() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      window.location.href = "/login.html";
-      return;
-    }
-
-    // Hide loading once auth check passes
-    document.getElementById("loading").style.display = "none";
-
-    let { data: profile, error } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-    
-    if (error && error.code !== "PGRST116") {
       document.getElementById("user").innerText =
-        "Failed to load profile.";
-      return;
-    }
-    
-    // 👇 AUTO-CREATE PROFILE IF MISSING
-    if (!profile) {
-      await supabase.from("profiles").insert({
-        id: user.id,
-        role: "student",
-      });
-    
-      profile = { role: "student" };
+        "Logged in as: " + user.email + " (" + profile.role + ")";
+
+      if (profile.role === "student") {
+        document.getElementById("student").style.display = "block";
+      }
+
+      if (profile.role === "tutor") {
+        document.getElementById("tutor").style.display = "block";
+      }
     }
 
+    window.logout = async function () {
+      await supabase.auth.signOut();
+      window.location.href = "/login.html";
+    };
 
-    document.getElementById("user").innerText =
-      "Logged in as: " + user.email + " (" + profile.role + ")";
-
-    if (profile.role === "student") {
-      document.getElementById("student").style.display = "block";
-    }
-
-    if (profile.role === "tutor") {
-      document.getElementById("tutor").style.display = "block";
-    }
-  }
-
-  window.logout = async function () {
-    await supabase.auth.signOut();
-    window.location.href = "/login.html";
-  };
-
-  loadUser();
-</script>
-
-
-
-
-
+    loadUser();
+  </script>
 </body>
 </html>
