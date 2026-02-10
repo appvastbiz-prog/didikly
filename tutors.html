@@ -27,7 +27,7 @@
 
   <script type="module">
     import { supabase } from "./supabase.js";
-    import { requireRole } from "./guard.js";
+    import { requireAuth } from "./guard.js";
 
     async function loadTutors() {
       const { data: tutors, error } = await supabase
@@ -72,7 +72,7 @@
     }
 
     async function init() {
-      const access = await requireRole(["student"]);
+      const access = await requireAuth(["student"]);
       if (!access.ok) {
         document.getElementById("loading").innerText = "Access denied";
         return;
