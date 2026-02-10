@@ -48,42 +48,45 @@
 
   <script type="module">
     import { supabase } from "./supabase.js";
+    import { requireAuth } from "./guard.js";
+
 
     async function loadUser() {
-      const { data: sessionData } = await supabase.auth.getSession();
-
-      if (!sessionData.session) {
+      const access = await requireAuth();
+    
+      if (!access.ok) {
         window.location.href = "/login.html";
         return;
       }
-
-      const user = sessionData.session.user;
-
+    
+      const user = access.user;
+    
       document.getElementById("loading").style.display = "none";
       document.getElementById("card").style.display = "block";
-
+    
       let { data: profile } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", user.id)
         .single();
-
+    
       if (!profile) {
         await supabase.from("profiles").insert({ id: user.id, role: "student" });
         profile = { role: "student" };
       }
-
+    
       document.getElementById("user").innerText =
         "Logged in as: " + user.email + " (" + profile.role + ")";
-
+    
       if (profile.role === "student") {
         document.getElementById("student").style.display = "block";
       }
-
+    
       if (profile.role === "tutor") {
         document.getElementById("tutor").style.display = "block";
       }
     }
+
 
     window.logout = async function () {
       await supabase.auth.signOut();
