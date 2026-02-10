@@ -26,62 +26,59 @@
   </div>
 
   <script type="module">
-    import { supabase } from "./supabase.js";
-    import { requireAuth } from "./guard.js";
-
-    async function loadTutors() {
-      const { data: tutors, error } = await supabase
-        .from("profiles")
-        .select("id, mode, availability")
-        .eq("role", "tutor");
-
-      if (error) {
-        document.getElementById("loading").innerText = "Failed to load tutors.";
-        return;
+      import { supabase } from "./supabase.js";
+      import { requireAuth } from "./guard.js";
+    
+      async function init() {
+        const access = await requireAuth(["student"]);
+        if (!access.ok) {
+          document.getElementById("loading").innerText = "Access denied";
+          return;
+        }
+    
+        document.getElementById("loading").style.display = "none";
+        loadTutors();
       }
-
-      const list = document.getElementById("tutorList");
-      if (!tutors || tutors.length === 0) {
-        list.innerHTML = "<p class='muted'>No tutors available yet.</p>";
-        return;
+    
+      async function loadTutors() {
+        const { data: tutors, error } = await supabase
+          .from("profiles")
+          .select("id, language, institution, gender, age, first_language, price, mode, availability")
+          .eq("role", "tutor");
+    
+        if (error) {
+          document.getElementById("loading").innerText = "Failed to load tutors.";
+          return;
+        }
+    
+        const list = document.getElementById("tutorList");
+        list.innerHTML = "";
+    
+        if (!tutors || tutors.length === 0) {
+          list.innerHTML = "<p class='muted'>No tutors available yet.</p>";
+          return;
+        }
+    
+        tutors.forEach(tutor => {
+          const card = document.createElement("div");
+          card.className = "card";
+          card.innerHTML = `
+            <strong>Tutor-${tutor.id.slice(-4)}</strong><br>
+            <b>Languages:</b> ${tutor.language || "-"}<br>
+            <b>Institution:</b> ${tutor.institution}<br>
+            <b>Gender:</b> ${tutor.gender}<br>
+            <b>Age:</b> ${tutor.age}<br>
+            <b>First language:</b> ${tutor.first_language}<br>
+            <b>Mode:</b> ${tutor.mode || "-"}<br>
+            <b>Availability:</b> ${tutor.availability || "-"}<br>
+            <b>Price:</b> RM ${tutor.price}
+          `;
+          list.appendChild(card);
+        });
       }
+    
+      init();
+    </script>
 
-      tutors.forEach(async (tutor) => {
-        const anonName = "Tutor-" + tutor.id.slice(-4);
-
-        const { data: reviews } = await supabase
-          .from("reviews")
-          .select("comment")
-          .eq("tutor_id", tutor.id);
-
-        const reviewText = reviews && reviews.length
-          ? reviews.map(r => `• ${r.comment}`).join("<br>")
-          : "No reviews yet";
-
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `
-          <strong>${anonName}</strong><br>
-          Mode: ${tutor.mode || "Not set"}<br>
-          Availability: ${tutor.availability || "Not set"}<br>
-          <em>Reviews:</em><br>
-          ${reviewText}
-        `;
-        list.appendChild(card);
-      });
-    }
-
-    async function init() {
-      const access = await requireAuth(["student"]);
-      if (!access.ok) {
-        document.getElementById("loading").innerText = "Access denied";
-        return;
-      }
-      document.getElementById("loading").style.display = "none";
-      await loadTutors();
-    }
-
-    init();
-  </script>
 </body>
 </html>
