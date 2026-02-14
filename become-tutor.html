@@ -42,7 +42,7 @@
         return;
       }
 
-      const language = document.getElementById("language").value;
+      const languages = document.getElementById("language").value;
       const institution = document.getElementById("institution").value;
       const gender = document.getElementById("gender").value;
       const age = Number(document.getElementById("age").value);
@@ -53,7 +53,7 @@
         .from("profiles")
         .update({
           role: "tutor",
-          language,
+          languages,
           institution,
           gender,
           age,
