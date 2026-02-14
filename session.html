@@ -30,13 +30,13 @@
 
   <script type="module">
     import { supabase } from "./supabase.js";
-    import { requireRole } from "./guard.js";
+    import { requireAuth } from "./guard.js";
 
     const params = new URLSearchParams(window.location.search);
     const id = params.get("id");
 
     async function init() {
-      const access = await requireRole(["student", "tutor"]);
+      const access = await requireAuth(["student", "tutor"]);
       if (!access.ok) {
         document.getElementById("loading").innerText = "Access denied";
         return;
