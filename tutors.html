@@ -24,7 +24,7 @@
     <h2>Find a Tutor</h2>
 
     <input id="language" placeholder="Language (e.g. English)" />
-    
+
     <select id="mode">
       <option value="">Any mode</option>
       <option value="formal_speaking">Formal speaking</option>
@@ -34,6 +34,15 @@
 
     <input id="minPrice" type="number" placeholder="Min price (RM)" />
     <input id="maxPrice" type="number" placeholder="Max price (RM)" />
+
+    <input id="minRating" type="number" step="0.1" placeholder="Min rating (e.g. 3.5)" />
+    <input id="maxRating" type="number" step="0.1" placeholder="Max rating (e.g. 5.0)" />
+
+    <select id="sortRating">
+      <option value="">No rating sort</option>
+      <option value="desc">Highest rating first</option>
+      <option value="asc">Lowest rating first</option>
+    </select>
 
     <button onclick="search()">Search</button>
 
@@ -64,58 +73,69 @@
       const mode = document.getElementById("mode").value;
       const minPrice = document.getElementById("minPrice").value;
       const maxPrice = document.getElementById("maxPrice").value;
+      const minRating = Number(document.getElementById("minRating").value || 0);
+      const maxRating = Number(document.getElementById("maxRating").value || 5);
+      const sortRating = document.getElementById("sortRating").value;
 
       let query = supabase
         .from("profiles")
         .select("id, languages, institution, gender, age, first_language, price, mode, availability, call_mode, bio")
         .eq("role", "tutor");
 
-      if (language) {
-        query = query.ilike("languages", `%${language}%`);
-      }
-
-      if (mode) {
-        query = query.eq("mode", mode);
-      }
-
-      if (minPrice) {
-        query = query.gte("price", minPrice);
-      }
-
-      if (maxPrice) {
-        query = query.lte("price", maxPrice);
-      }
+      if (language) query = query.ilike("languages", `%${language}%`);
+      if (mode) query = query.eq("mode", mode);
+      if (minPrice) query = query.gte("price", minPrice);
+      if (maxPrice) query = query.lte("price", maxPrice);
 
       const { data: tutors, error } = await query;
 
       document.getElementById("loading").style.display = "none";
 
-      if (error) {
+      if (error || !tutors) {
         document.getElementById("tutorList").innerHTML =
           "<p class='muted'>Failed to load tutors.</p>";
         return;
       }
 
-      if (!tutors || tutors.length === 0) {
-        document.getElementById("tutorList").innerHTML =
-          "<p class='muted'>No tutors match your filters.</p>";
-        return;
-      }
+      const enriched = [];
 
-      tutors.forEach(async tutor => {
+      for (const tutor of tutors) {
         const { data: reviews } = await supabase
           .from("reviews")
           .select("rating")
           .eq("tutor_id", tutor.id);
 
-        let avg = "No ratings yet";
+        let avg = 0;
         let count = 0;
 
         if (reviews && reviews.length) {
           count = reviews.length;
-          const sum = reviews.reduce((a, r) => a + r.rating, 0);
-          avg = (sum / count).toFixed(1) + " ★";
+          avg = reviews.reduce((a, r) => a + r.rating, 0) / count;
         }
+
+        enriched.push({ ...tutor, avgRating: avg, reviewCount: count });
+      }
+
+      const filtered = enriched.filter(t =>
+        t.avgRating >= minRating && t.avgRating <= maxRating
+      );
+
+      if (sortRating === "desc") {
+        filtered.sort((a, b) => b.avgRating - a.avgRating);
+      } else if (sortRating === "asc") {
+        filtered.sort((a, b) => a.avgRating - b.avgRating);
+      }
+
+      if (filtered.length === 0) {
+        document.getElementById("tutorList").innerHTML =
+          "<p class='muted'>No tutors match your filters.</p>";
+        return;
+      }
+
+      filtered.forEach(tutor => {
+        const avgText = tutor.reviewCount
+          ? tutor.avgRating.toFixed(1) + " ★"
+          : "No ratings yet";
 
         const card = document.createElement("div");
         card.className = "card";
@@ -130,7 +150,7 @@
           <b>Call Mode:</b> ${tutor.call_mode || "-"}<br>
           <b>Availability:</b> ${tutor.availability || "-"}<br>
           <b>Price:</b> RM ${tutor.price}<br>
-          <b>Rating:</b> ${avg} (${count} reviews)<br>
+          <b>Rating:</b> ${avgText} (${tutor.reviewCount} reviews)<br>
           <b>Bio:</b> ${tutor.bio || "-"}
         `;
         document.getElementById("tutorList").appendChild(card);
