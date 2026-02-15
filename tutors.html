@@ -102,7 +102,21 @@
         return;
       }
 
-      tutors.forEach(tutor => {
+      tutors.forEach(async tutor => {
+        const { data: reviews } = await supabase
+          .from("reviews")
+          .select("rating")
+          .eq("tutor_id", tutor.id);
+
+        let avg = "No ratings yet";
+        let count = 0;
+
+        if (reviews && reviews.length) {
+          count = reviews.length;
+          const sum = reviews.reduce((a, r) => a + r.rating, 0);
+          avg = (sum / count).toFixed(1) + " ★";
+        }
+
         const card = document.createElement("div");
         card.className = "card";
         card.innerHTML = `
@@ -116,6 +130,7 @@
           <b>Call Mode:</b> ${tutor.call_mode || "-"}<br>
           <b>Availability:</b> ${tutor.availability || "-"}<br>
           <b>Price:</b> RM ${tutor.price}<br>
+          <b>Rating:</b> ${avg} (${count} reviews)<br>
           <b>Bio:</b> ${tutor.bio || "-"}
         `;
         document.getElementById("tutorList").appendChild(card);
