@@ -61,11 +61,11 @@
 
       document.getElementById("loading").style.display = "none";
 
-      let { data: profile } = await supabase
+      let { data: profile, error } = await supabase
         .from("profiles")
         .select("role")
         .eq("id", user.id)
-        .single();
+        .maybeSingle();
 
       if (!profile) {
         await supabase.from("profiles").insert({ id: user.id, role: "student" });
