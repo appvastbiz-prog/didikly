@@ -92,19 +92,27 @@
         result.innerText = "This time overlaps with an existing slot.";
         return;
       }
+
+      const startUtc = new Date(start).toISOString();
+      const endUtc = new Date(end).toISOString();
   
       const { error } = await supabase
         .from("availability_slots")
         .insert({
           tutor_id: user.id,
-          start_time: start,
-          end_time: end
+          start_time: startUtc,
+          end_time: endUtc
         });
-  
+      
       if (error) {
-        result.innerText = "Could not add slot. Please try again.";
+        if (error.message && error.message.includes("no_overlapping_slots")) {
+          result.innerText = "This slot overlaps with an existing one.";
+        } else {
+          result.innerText = "Could not add slot. Please try again.";
+        }
         return;
       }
+
   
       result.innerText = "Slot added.";
       await loadSlots();
