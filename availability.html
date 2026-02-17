@@ -92,11 +92,32 @@
         return;
       }
 
-      const { error } = await supabase.from("availability_slots").insert({
-        tutor_id: user.id,
-        start_time: start,
-        end_time: end
-      });
+            const { data: existing } = await supabase
+              .from("availability_slots")
+              .select("start_time, end_time")
+              .eq("tutor_id", user.id);
+      
+            const newStart = new Date(start).getTime();
+            const newEnd = new Date(end).getTime();
+      
+            const overlap = existing.some(slot => {
+              const s = new Date(slot.start_time).getTime();
+              const e = new Date(slot.end_time).getTime();
+              return newStart < e && newEnd > s;
+            });
+      
+            if (overlap) {
+              document.getElementById("result").innerText =
+                "This time overlaps with an existing slot.";
+              return;
+            }
+      
+            const { error } = await supabase.from("availability_slots").insert({
+              tutor_id: user.id,
+              start_time: start,
+              end_time: end
+            });
+
 
       document.getElementById("result").innerText =
         error ? error.message : "Slot added";
