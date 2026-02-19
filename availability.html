@@ -116,9 +116,14 @@
       });
 
       if (error) {
-        result.innerText = error.message;
+        if (error.message.includes("no_overlapping_slots")) {
+          result.innerText = "This time overlaps with an existing slot. Please choose a different time.";
+        } else {
+          result.innerText = error.message;
+        }
         return;
       }
+
 
       result.innerText = "Slot added.";
       await loadSlots();
