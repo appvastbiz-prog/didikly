@@ -40,10 +40,10 @@
 
   <script type="module">
     import { supabase } from "./supabase.js";
-    import { requireRole } from "./guard.js";
+    import { requireAuth } from "./guard.js";
 
     async function init() {
-      const access = await requireRole(["tutor"]);
+      const access = await requireAuth(["tutor"]);
       if (!access.ok) {
         document.body.innerHTML = "Access denied";
         return;
@@ -58,7 +58,6 @@
         .from("availability_slots")
         .select("*")
         .eq("tutor_id", user.id)
-        .in("status", ["available", "locked", "booked"])
         .order("start_time");
 
       const container = document.getElementById("slots");
@@ -80,7 +79,6 @@
         div.innerHTML = `
           <strong>${new Date(slot.start_time).toLocaleString()}</strong> →
           ${new Date(slot.end_time).toLocaleString()}
-          ${slot.status === "booked" ? "(Booked)" : slot.status === "locked" ? "(Locked)" : ""}
           <br>
           <button onclick="removeSlot('${slot.id}')">Delete</button>
         `;
@@ -107,48 +105,18 @@
       }
 
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        result.innerText = "Not logged in.";
-        return;
-      }
 
-      // Frontend overlap check
-      const { data: existing } = await supabase
-        .from("availability_slots")
-        .select("start_time, end_time")
-        .eq("tutor_id", user.id);
-
-      const newStart = new Date(startUtc).getTime();
-      const newEnd = new Date(endUtc).getTime();
-
-      const overlap = existing?.some(slot => {
-        const s = new Date(slot.start_time).getTime();
-        const e = new Date(slot.end_time).getTime();
-        return newStart < e && newEnd > s;
+      const { error } = await supabase.from("availability_slots").insert({
+        tutor_id: user.id,
+        start_time: startUtc,
+        end_time: endUtc,
+        status: "available",
+        locked_until: null,
+        booked_session_id: null
       });
 
-      if (overlap) {
-        result.innerText = "This time overlaps with an existing slot.";
-        return;
-      }
-
-      const { error } = await supabase
-        .from("availability_slots")
-        .insert({
-          tutor_id: user.id,
-          start_time: startUtc,
-          end_time: endUtc,
-          status: "available",
-          locked_until: null,
-          booked_session_id: null
-        });
-
       if (error) {
-        if (error.message && error.message.includes("no_overlapping_slots")) {
-          result.innerText = "This time overlaps with an existing slot.";
-        } else {
-          result.innerText = "Could not add slot. Please try again.";
-        }
+        result.innerText = error.message;
         return;
       }
 
