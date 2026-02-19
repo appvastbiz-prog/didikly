@@ -7,84 +7,104 @@
     body { font-family: system-ui, sans-serif; background:#0f172a; color:#e5e7eb; margin:0; }
     .container { max-width:720px; margin:0 auto; padding:24px; }
     .topbar { display:flex; justify-content:space-between; margin-bottom:16px; }
-    .card { background:#020617; padding:24px; border-radius:12px; }
-    input, select, button { width:100%; padding:12px; margin:8px 0 16px; border-radius:8px; border:none; }
-    button { background:#38bdf8; color:#020617; font-weight:600; cursor:pointer; }
+    .card { background:#020617; padding:24px; border-radius:12px; margin-bottom:12px; }
+    button { background:#38bdf8; color:#020617; font-weight:600; cursor:pointer; border:none; padding:10px 14px; border-radius:8px; }
     a { color:#38bdf8; text-decoration:none; }
     .muted { color:#94a3b8; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="topbar">
-      <a href="/dashboard.html">← Dashboard</a>
-      <a href="/dashboard.html">Home</a>
-    </div>
+<div class="container">
 
-    <p id="loading" class="muted">Loading...</p>
-
-    <div class="card">
-      <h2>Request Session</h2>
-
-      <input id="tutorId" placeholder="Tutor ID (last 4 shown)" />
-
-      <select id="mode">
-        <option value="formal_speaking">Formal Speaking</option>
-        <option value="conversational_speaking">Conversational Speaking</option>
-        <option value="writing">Writing</option>
-      </select>
-
-      <button onclick="requestSession()">Request</button>
-      <p id="result" class="muted"></p>
-    </div>
+  <div class="topbar">
+    <a href="/dashboard.html">← Dashboard</a>
+    <a href="/dashboard.html">Home</a>
   </div>
 
-  <script type="module">
-    import { supabase } from "./supabase.js";
-    import { requireAuth } from "./guard.js";
+  <h2>Request Session</h2>
+  <p class="muted">Click a slot to book it (locks for 10 minutes)</p>
 
-    async function init() {
-      const access = await requireAuth(["student"]);
-      if (!access.ok) {
-        document.getElementById("loading").innerText = "Access denied";
-        return;
-      }
-      document.getElementById("loading").style.display = "none";
-    }
+  <div id="slots"></div>
+  <p id="result" class="muted"></p>
 
-    window.requestSession = async function () {
-      const tutorIdSuffix = document.getElementById("tutorId").value;
-      const mode = document.getElementById("mode").value;
+</div>
 
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        document.getElementById("result").innerText = "Not logged in";
-        return;
-      }
+<script type="module">
+import { supabase } from "./supabase.js";
+import { requireAuth } from "./guard.js";
 
-      const { data: tutors } = await supabase
-        .from("profiles")
-        .select("id")
-        .eq("role", "tutor");
+async function init() {
+  const access = await requireAuth(["student"]);
+  if (!access.ok) {
+    document.body.innerHTML = "Access denied";
+    return;
+  }
+  loadSlots();
+}
 
-      const tutor = tutors.find(t => t.id.endsWith(tutorIdSuffix));
-      if (!tutor) {
-        document.getElementById("result").innerText = "Tutor not found";
-        return;
-      }
+async function loadSlots() {
+  const { data: slots } = await supabase
+    .from("availability_slots")
+    .select("*")
+    .eq("status", "available")
+    .order("start_time");
 
-      const { error } = await supabase.from("sessions").insert({
-        student_id: user.id,
-        tutor_id: tutor.id,
-        mode,
-        status: "requested",
-      });
+  const container = document.getElementById("slots");
+  container.innerHTML = "";
 
-      document.getElementById("result").innerText =
-        error ? error.message : "Session requested";
-    };
+  if (!slots || slots.length === 0) {
+    container.innerHTML = "<p class='muted'>No slots available.</p>";
+    return;
+  }
 
-    init();
-  </script>
+  slots.forEach(slot => {
+    const div = document.createElement("div");
+    div.className = "card";
+    div.innerHTML = `
+      <b>${new Date(slot.start_time).toLocaleString()}</b> →
+      ${new Date(slot.end_time).toLocaleString()}
+      <br><br>
+      <button onclick="bookSlot('${slot.id}')">Book this slot</button>
+    `;
+    container.appendChild(div);
+  });
+}
+
+window.bookSlot = async function (slotId) {
+  const result = document.getElementById("result");
+
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const { data: session, error: sessionErr } = await supabase
+    .from("sessions")
+    .insert({
+      student_id: user.id,
+      tutor_id: null,
+      status: "requested"
+    })
+    .select()
+    .single();
+
+  if (sessionErr) {
+    result.innerText = sessionErr.message;
+    return;
+  }
+
+  const { data, error } = await supabase.rpc("book_slot", {
+    slot_uuid: slotId,
+    session_uuid: session.id
+  });
+
+  if (!data) {
+    result.innerText = "Slot was already taken. Try another.";
+    return;
+  }
+
+  result.innerText = "Slot locked. You have 10 minutes to complete booking.";
+  loadSlots();
+};
+
+init();
+</script>
 </body>
 </html>
