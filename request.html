@@ -43,11 +43,17 @@ async function init() {
 }
 
 async function loadSlots() {
-  const { data: slots } = await supabase
+  const { data: slots, error } = await supabase
     .from("availability_slots")
     .select("*")
+    .eq("tutor_id", tutorId)
     .eq("status", "available")
+    .or("locked_until.is.null,locked_until.lt.now()")
     .order("start_time");
+  
+  if (error) {
+    console.error(error);
+  }
 
   const container = document.getElementById("slots");
   container.innerHTML = "";
