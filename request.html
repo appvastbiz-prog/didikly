@@ -14,6 +14,7 @@
   </style>
 </head>
 <body>
+
 <div class="container">
 
   <div class="topbar">
@@ -33,30 +34,44 @@
 import { supabase } from "./supabase.js";
 import { requireAuth } from "./guard.js";
 
+const params = new URLSearchParams(window.location.search);
+const tutorId = params.get("tutor");
+
 async function init() {
   const access = await requireAuth(["student"]);
   if (!access.ok) {
     document.body.innerHTML = "Access denied";
     return;
   }
+
+  if (!tutorId) {
+    document.getElementById("slots").innerHTML =
+      "<p class='muted'>Missing tutor. Go back and select a tutor.</p>";
+    return;
+  }
+
   loadSlots();
 }
 
 async function loadSlots() {
+  const now = new Date().toISOString();
+
   const { data: slots, error } = await supabase
     .from("availability_slots")
     .select("*")
     .eq("tutor_id", tutorId)
     .eq("status", "available")
-    .or("locked_until.is.null,locked_until.lt.now()")
+    .or(`locked_until.is.null,locked_until.lt.${now}`)
     .order("start_time");
-  
-  if (error) {
-    console.error(error);
-  }
 
   const container = document.getElementById("slots");
   container.innerHTML = "";
+
+  if (error) {
+    container.innerHTML = "<p class='muted'>Failed to load slots.</p>";
+    console.error(error);
+    return;
+  }
 
   if (!slots || slots.length === 0) {
     container.innerHTML = "<p class='muted'>No slots available.</p>";
@@ -85,7 +100,7 @@ window.bookSlot = async function (slotId) {
     .from("sessions")
     .insert({
       student_id: user.id,
-      tutor_id: null,
+      tutor_id: tutorId,
       status: "requested"
     })
     .select()
@@ -102,15 +117,16 @@ window.bookSlot = async function (slotId) {
   });
 
   if (!data) {
-    result.innerText = "Slot was already taken. Try another.";
+    result.innerText = "Slot was already taken.";
     return;
   }
 
-  result.innerText = "Slot locked. You have 10 minutes to complete booking.";
+  result.innerText = "Slot locked for 10 minutes.";
   loadSlots();
 };
 
 init();
 </script>
+
 </body>
 </html>
