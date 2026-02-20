@@ -8,156 +8,79 @@
     .container { max-width:720px; margin:0 auto; padding:24px; }
     .topbar { display:flex; justify-content:space-between; margin-bottom:16px; }
     .card { background:#020617; padding:24px; border-radius:12px; margin-bottom:12px; }
-    input, select, button { width:100%; padding:12px; margin:6px 0 12px; border-radius:8px; border:none; }
-    button { background:#38bdf8; color:#020617; font-weight:600; cursor:pointer; }
     a { color:#38bdf8; text-decoration:none; }
     .muted { color:#94a3b8; }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="topbar">
-      <a href="/dashboard.html">← Dashboard</a>
-      <a href="/dashboard.html">Home</a>
-    </div>
 
-    <h2>Find a Tutor</h2>
+<div class="container">
 
-    <input id="language" placeholder="Language (e.g. English)" />
-
-    <select id="mode">
-      <option value="">Any mode</option>
-      <option value="formal_speaking">Formal speaking</option>
-      <option value="conversational_speaking">Conversational speaking</option>
-      <option value="writing">Writing</option>
-    </select>
-
-    <input id="minPrice" type="number" placeholder="Min price (RM)" />
-    <input id="maxPrice" type="number" placeholder="Max price (RM)" />
-
-    <input id="minRating" type="number" step="0.1" placeholder="Min rating (e.g. 3.5)" />
-    <input id="maxRating" type="number" step="0.1" placeholder="Max rating (e.g. 5.0)" />
-
-    <select id="sortRating">
-      <option value="">No rating sort</option>
-      <option value="desc">Highest rating first</option>
-      <option value="asc">Lowest rating first</option>
-    </select>
-
-    <button onclick="search()">Search</button>
-
-    <p id="loading" class="muted">Loading...</p>
-
-    <div id="tutorList"></div>
+  <div class="topbar">
+    <a href="/dashboard.html">← Dashboard</a>
+    <a href="/dashboard.html">Home</a>
   </div>
 
-  <script type="module">
-    import { supabase } from "./supabase.js";
-    import { requireAuth } from "./guard.js";
+  <h2>Available Tutors</h2>
+  <p class="muted">Click a tutor to view their available slots</p>
 
-    async function init() {
-      const access = await requireAuth(["student"]);
-      if (!access.ok) {
-        document.getElementById("loading").innerText = "Access denied";
-        return;
-      }
-      document.getElementById("loading").style.display = "none";
-      search();
-    }
+  <div id="tutorList"></div>
 
-    window.search = async function () {
-      document.getElementById("loading").style.display = "block";
-      document.getElementById("tutorList").innerHTML = "";
+</div>
 
-      const language = document.getElementById("language").value.trim();
-      const mode = document.getElementById("mode").value;
-      const minPrice = document.getElementById("minPrice").value;
-      const maxPrice = document.getElementById("maxPrice").value;
-      const minRating = Number(document.getElementById("minRating").value || 0);
-      const maxRating = Number(document.getElementById("maxRating").value || 5);
-      const sortRating = document.getElementById("sortRating").value;
+<script type="module">
+import { supabase } from "./supabase.js";
+import { requireAuth } from "./guard.js";
 
-      let query = supabase
-        .from("profiles")
-        .select("id, languages, institution, gender, age, first_language, price, mode, availability, call_mode, bio")
-        .eq("role", "tutor");
+async function init() {
+  const access = await requireAuth(["student"]);
+  if (!access.ok) {
+    document.body.innerHTML = "Access denied";
+    return;
+  }
+  loadTutors();
+}
 
-      if (language) query = query.ilike("languages", `%${language}%`);
-      if (mode) query = query.eq("mode", mode);
-      if (minPrice) query = query.gte("price", minPrice);
-      if (maxPrice) query = query.lte("price", maxPrice);
+async function loadTutors() {
+  const { data: tutors, error } = await supabase
+    .from("profiles")
+    .select("id, first_language, gender, institution, avg_rating")
+    .eq("role", "tutor");
 
-      const { data: tutors, error } = await query;
+  const list = document.getElementById("tutorList");
+  list.innerHTML = "";
 
-      document.getElementById("loading").style.display = "none";
+  if (error) {
+    list.innerHTML = "<p class='muted'>Failed to load tutors.</p>";
+    console.error(error);
+    return;
+  }
 
-      if (error || !tutors) {
-        document.getElementById("tutorList").innerHTML =
-          "<p class='muted'>Failed to load tutors.</p>";
-        return;
-      }
+  if (!tutors || tutors.length === 0) {
+    list.innerHTML = "<p class='muted'>No tutors available yet.</p>";
+    return;
+  }
 
-      const enriched = [];
+  tutors.forEach(tutor => {
+    const anonName = "Tutor-" + tutor.id.slice(-4);
 
-      for (const tutor of tutors) {
-        const { data: reviews } = await supabase
-          .from("reviews")
-          .select("rating")
-          .eq("tutor_id", tutor.id);
+    const card = document.createElement("div");
+    card.className = "card";
+    card.innerHTML = `
+      <strong>${anonName}</strong><br>
+      First language: ${tutor.first_language || "Not set"}<br>
+      Institution: ${tutor.institution || "Not set"}<br>
+      Gender: ${tutor.gender || "Hidden"}<br>
+      Rating: ${tutor.avg_rating ? tutor.avg_rating.toFixed(1) + " ★" : "No ratings yet"}<br><br>
+      <a href="/request.html?tutor=${tutor.id}">View available slots</a>
+    `;
 
-        let avg = 0;
-        let count = 0;
+    list.appendChild(card);
+  });
+}
 
-        if (reviews && reviews.length) {
-          count = reviews.length;
-          avg = reviews.reduce((a, r) => a + r.rating, 0) / count;
-        }
+init();
+</script>
 
-        enriched.push({ ...tutor, avgRating: avg, reviewCount: count });
-      }
-
-      const filtered = enriched.filter(t =>
-        t.avgRating >= minRating && t.avgRating <= maxRating
-      );
-
-      if (sortRating === "desc") {
-        filtered.sort((a, b) => b.avgRating - a.avgRating);
-      } else if (sortRating === "asc") {
-        filtered.sort((a, b) => a.avgRating - b.avgRating);
-      }
-
-      if (filtered.length === 0) {
-        document.getElementById("tutorList").innerHTML =
-          "<p class='muted'>No tutors match your filters.</p>";
-        return;
-      }
-
-      filtered.forEach(tutor => {
-        const avgText = tutor.reviewCount
-          ? tutor.avgRating.toFixed(1) + " ★"
-          : "No ratings yet";
-
-        const card = document.createElement("div");
-        card.className = "card";
-        card.innerHTML = `
-          <strong>Tutor-${tutor.id.slice(-4)}</strong><br>
-          <b>Languages:</b> ${tutor.languages || "-"}<br>
-          <b>Institution:</b> ${tutor.institution}<br>
-          <b>Gender:</b> ${tutor.gender}<br>
-          <b>Age:</b> ${tutor.age}<br>
-          <b>First language:</b> ${tutor.first_language}<br>
-          <b>Mode:</b> ${tutor.mode || "-"}<br>
-          <b>Call Mode:</b> ${tutor.call_mode || "-"}<br>
-          <b>Availability:</b> ${tutor.availability || "-"}<br>
-          <b>Price:</b> RM ${tutor.price}<br>
-          <b>Rating:</b> ${avgText} (${tutor.reviewCount} reviews)<br>
-          <b>Bio:</b> ${tutor.bio || "-"}
-        `;
-        document.getElementById("tutorList").appendChild(card);
-      });
-    };
-
-    init();
-  </script>
 </body>
 </html>
