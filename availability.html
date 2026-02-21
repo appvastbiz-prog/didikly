@@ -37,10 +37,11 @@
 
   <script type="module">
     import { supabase } from "./supabase.js";
-    import { requireRole } from "./guard.js";
+    import { requireAuth } from "./guard.js";
 
     async function init() {
-      const access = await requireRole(["tutor"]);
+      const access = await requireAuth(["tutor"]);
+
       if (!access.ok) {
         document.getElementById("loading").innerText = "Access denied";
         return;
@@ -59,15 +60,15 @@
         .eq("tutor_id", user.id)
         .order("start_time", { ascending: true });
 
-      if (error) {
-        document.getElementById("slots").innerText = error.message;
-        return;
-      }
-
       const slotsDiv = document.getElementById("slots");
       slotsDiv.innerHTML = "";
 
-      if (!data.length) {
+      if (error) {
+        slotsDiv.innerHTML = `<p class="muted">${error.message}</p>`;
+        return;
+      }
+
+      if (!data || data.length === 0) {
         slotsDiv.innerHTML = "<p class='muted'>No slots yet.</p>";
         return;
       }
@@ -87,6 +88,11 @@
       const start = document.getElementById("start").value;
       const end = document.getElementById("end").value;
 
+      if (!start || !end) {
+        document.getElementById("result").innerText = "Please select both start and end time.";
+        return;
+      }
+
       const { data: { user } } = await supabase.auth.getUser();
 
       const { error } = await supabase.from("availability_slots").insert({
@@ -98,7 +104,7 @@
       document.getElementById("result").innerText =
         error ? error.message : "Slot added";
 
-      loadSlots();
+      if (!error) loadSlots();
     };
 
     window.deleteSlot = async function (id) {
