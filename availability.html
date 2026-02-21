@@ -37,84 +37,76 @@
 
   <script type="module">
     import { supabase } from "./supabase.js";
-    import { requireAuth } from "./guard.js";
-    
+    import { requireRole } from "./guard.js";
+
     async function init() {
-      const access = await requireAuth(["tutor"]);
+      const access = await requireRole(["tutor"]);
       if (!access.ok) {
-        document.body.innerHTML = "Access denied";
+        document.getElementById("loading").innerText = "Access denied";
         return;
       }
-      await loadSlots();
+
+      document.getElementById("loading").style.display = "none";
+      loadSlots();
     }
-    
+
     async function loadSlots() {
       const { data: { user } } = await supabase.auth.getUser();
-    
-      const { data: slots, error } = await supabase
+
+      const { data, error } = await supabase
         .from("availability_slots")
         .select("*")
         .eq("tutor_id", user.id)
-        .order("start_time");
-    
-      const container = document.getElementById("slots");
-      container.innerHTML = "";
-    
-      if (!slots || slots.length === 0) {
-        container.innerHTML = "<p class='muted'>No slots yet.</p>";
+        .order("start_time", { ascending: true });
+
+      if (error) {
+        document.getElementById("slots").innerText = error.message;
         return;
       }
-    
-      slots.forEach(slot => {
+
+      const slotsDiv = document.getElementById("slots");
+      slotsDiv.innerHTML = "";
+
+      if (!data.length) {
+        slotsDiv.innerHTML = "<p class='muted'>No slots yet.</p>";
+        return;
+      }
+
+      data.forEach(slot => {
         const div = document.createElement("div");
         div.className = "card";
         div.innerHTML = `
-          <strong>${new Date(slot.start_time).toLocaleString()}</strong> →
-          ${new Date(slot.end_time).toLocaleString()}
-          <br>
-          <button onclick="removeSlot('${slot.id}')">Delete</button>
+          ${new Date(slot.start_time).toLocaleString()} → ${new Date(slot.end_time).toLocaleString()}
+          <button onclick="deleteSlot('${slot.id}')">Delete</button>
         `;
-        container.appendChild(div);
+        slotsDiv.appendChild(div);
       });
     }
-    
+
     window.addSlot = async function () {
-      const startLocal = document.getElementById("start").value;
-      const endLocal = document.getElementById("end").value;
-      const result = document.getElementById("result");
-    
-      const startUtc = new Date(startLocal).toISOString();
-      const endUtc = new Date(endLocal).toISOString();
-    
+      const start = document.getElementById("start").value;
+      const end = document.getElementById("end").value;
+
       const { data: { user } } = await supabase.auth.getUser();
-    
+
       const { error } = await supabase.from("availability_slots").insert({
         tutor_id: user.id,
-        start_time: startUtc,
-        end_time: endUtc,
-        status: "available"
+        start_time: new Date(start).toISOString(),
+        end_time: new Date(end).toISOString()
       });
-    
-      if (error) {
-        if (error.message.includes("no_overlapping_slots")) {
-          result.innerText = "Time overlaps with existing slot.";
-        } else {
-          result.innerText = error.message;
-        }
-        return;
-      }
-    
-      result.innerText = "Slot added.";
+
+      document.getElementById("result").innerText =
+        error ? error.message : "Slot added";
+
       loadSlots();
     };
-    
-    window.removeSlot = async function (id) {
+
+    window.deleteSlot = async function (id) {
       await supabase.from("availability_slots").delete().eq("id", id);
       loadSlots();
     };
-    
-    init();
-    </script>
 
+    init();
+  </script>
 </body>
 </html>
