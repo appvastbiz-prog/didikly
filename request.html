@@ -60,9 +60,9 @@ async function loadSlots() {
     .from("availability_slots")
     .select("*")
     .eq("tutor_id", tutorId)
-    .eq("status", "available")
-    .or(`locked_until.is.null,locked_until.lt.${now}`)
-    .order("start_time");
+    .is("booked_session_id", null)
+    .or(`locked_until.is.null,locked_until.lt.${new Date().toISOString()}`);
+
 
   const container = document.getElementById("slots");
   container.innerHTML = "";
