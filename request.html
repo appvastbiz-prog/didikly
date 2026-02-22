@@ -94,6 +94,7 @@ window.bookSlot = async function (slotId) {
   const result = document.getElementById("result");
   const { data: { user } } = await supabase.auth.getUser();
 
+  // 1. Create session
   const { data: session, error: sessionErr } = await supabase
     .from("sessions")
     .insert({
@@ -109,22 +110,41 @@ window.bookSlot = async function (slotId) {
     return;
   }
 
+  // 2. Lock slot
   const { data, error } = await supabase.rpc("book_slot", {
     slot_uuid: slotId,
     session_uuid: session.id
   });
 
-  if (!data) {
+  if (!data || error) {
     result.innerText = "Slot already taken.";
     return;
   }
 
-  result.innerText = "Slot locked for 10 minutes.";
+  // 3. Fetch slot time
+  const { data: slot } = await supabase
+    .from("availability_slots")
+    .select("start_time, end_time")
+    .eq("id", slotId)
+    .single();
+
+  // 4. Attach datetime to session
+  await supabase
+    .from("sessions")
+    .update({
+      scheduled_start: slot.start_time,
+      scheduled_end: slot.end_time,
+      slot_id: slotId
+    })
+    .eq("id", session.id);
+
+  result.innerText = "Slot booked. Waiting for tutor approval.";
   loadSlots();
 };
 
 init();
 </script>
+
 
 </body>
 </html>
