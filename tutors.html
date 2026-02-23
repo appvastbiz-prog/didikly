@@ -68,10 +68,11 @@ async function loadTutors() {
     card.className = "card";
     card.innerHTML = `
       <strong>${anonName}</strong><br>
-      First language: ${tutor.first_language || "Not set"}<br>
-      Institution: ${tutor.institution || "Not set"}<br>
-      Gender: ${tutor.gender || "Hidden"}<br>
-      Rating: ${tutor.avg_rating ? tutor.avg_rating.toFixed(1) + " ★" : "No ratings yet"}<br><br>
+      Mode: ${tutor.mode || "Not set"}<br>
+      Availability: ${tutor.availability || "Not set"}<br>
+      <em>Reviews:</em><br>
+      ${reviewText}
+      <br><br>
       <a href="/request.html?tutor=${tutor.id}">View available slots</a>
     `;
 
