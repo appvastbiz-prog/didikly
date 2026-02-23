@@ -31,118 +31,100 @@
 </div>
 
 <script type="module">
-import { supabase } from "./supabase.js";
-import { requireAuth } from "./guard.js";
+  import { supabase } from "./supabase.js";
+  import { requireAuth } from "./guard.js";
 
-const params = new URLSearchParams(window.location.search);
-const tutorId = params.get("tutor");
+  const params = new URLSearchParams(window.location.search);
+  const tutorId = params.get("tutor");
 
-async function init() {
-  const access = await requireAuth(["student"]);
-  if (!access.ok) {
-    document.body.innerHTML = "Access denied";
-    return;
+  async function init() {
+    const access = await requireAuth(["student"]);
+    if (!access.ok) {
+      document.getElementById("loading").innerText = "Access denied";
+      return;
+    }
+    document.getElementById("loading").style.display = "none";
+    await loadSlots();
   }
 
-  if (!tutorId) {
-    document.getElementById("slots").innerHTML =
-      "<p class='muted'>Missing tutor. Go back and select a tutor.</p>";
-    return;
+  async function loadSlots() {
+    const { data: slots, error } = await supabase
+      .from("availability_slots")
+      .select("*")
+      .eq("tutor_id", tutorId)
+      .is("booked_session_id", null)
+      .or("locked_until.is.null,locked_until.lt.now()")
+      .order("start_time", { ascending: true });
+
+    const list = document.getElementById("slots");
+    list.innerHTML = "";
+
+    if (error) {
+      list.innerText = error.message;
+      return;
+    }
+
+    if (!slots || slots.length === 0) {
+      list.innerHTML = "<p class='muted'>No available slots.</p>";
+      return;
+    }
+
+    slots.forEach(slot => {
+      const div = document.createElement("div");
+      div.className = "card";
+      div.innerHTML = `
+        <strong>${new Date(slot.start_time).toLocaleString()}</strong>
+        →
+        ${new Date(slot.end_time).toLocaleString()}
+        <br><br>
+        <button onclick="bookSlot('${slot.id}')">Book this slot</button>
+      `;
+      list.appendChild(div);
+    });
   }
 
-  loadSlots();
-}
+  window.bookSlot = async function (slotId) {
+    const result = document.getElementById("result");
+    result.innerText = "Booking...";
 
-async function loadSlots() {
-  const now = new Date().toISOString();
+    const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: slots, error } = await supabase
-    .from("availability_slots")
-    .select("*")
-    .eq("tutor_id", tutorId)
-    .is("booked_session_id", null)
-    .or(`locked_until.is.null,locked_until.lt.${now}`);
+    const { data: session, error: sessionErr } = await supabase
+      .from("sessions")
+      .insert({
+        student_id: user.id,
+        tutor_id: tutorId,
+        status: "requested"
+      })
+      .select()
+      .single();
 
-  const container = document.getElementById("slots");
-  container.innerHTML = "";
+    if (sessionErr) {
+      result.innerText = sessionErr.message;
+      return;
+    }
 
-  if (error) {
-    container.innerHTML = "<p class='muted'>Failed to load slots.</p>";
-    console.error(error);
-    return;
-  }
+    const { data: success, error } = await supabase.rpc("book_slot", {
+      slot_uuid: slotId,
+      session_uuid: session.id
+    });
 
-  if (!slots || slots.length === 0) {
-    container.innerHTML = "<p class='muted'>No slots available.</p>";
-    return;
-  }
+    if (error) {
+      result.innerText = error.message;
+      return;
+    }
 
-  slots.forEach(slot => {
-    const div = document.createElement("div");
-    div.className = "card";
-    div.innerHTML = `
-      <b>${new Date(slot.start_time).toLocaleString()}</b> →
-      ${new Date(slot.end_time).toLocaleString()}
-      <br><br>
-      <button onclick="bookSlot('${slot.id}')">Book this slot</button>
-    `;
-    container.appendChild(div);
-  });
-}
+    if (!success) {
+      await supabase.from("sessions").delete().eq("id", session.id);
+      result.innerText = "Slot already taken.";
+      return;
+    }
 
-window.bookSlot = async function (slotId) {
-  const result = document.getElementById("result");
-  const { data: { user } } = await supabase.auth.getUser();
+    result.innerText = "Slot booked successfully.";
+    await loadSlots();
+  };
 
-  // 1. Create session
-  const { data: session, error: sessionErr } = await supabase
-    .from("sessions")
-    .insert({
-      student_id: user.id,
-      tutor_id: tutorId,
-      status: "requested"
-    })
-    .select()
-    .single();
-
-  if (sessionErr) {
-    result.innerText = sessionErr.message;
-    return;
-  }
-
-  // 2. Lock slot
-  const { data, error } = await supabase.rpc("book_slot", {
-    slot_uuid: slotId,
-    session_uuid: session.id
-  });
-
-  if (!data || error) {
-    result.innerText = "Slot already taken.";
-    return;
-  }
-
-  // 3. Fetch slot time
-  const { data: slot } = await supabase
-    .from("availability_slots")
-    .select("start_time, end_time")
-    .eq("id", slotId)
-    .single();
-
-  // 4. Attach datetime to session
-  await supabase
-    .from("sessions")
-    .update({
-      scheduled_start: slot.start_time,
-      scheduled_end: slot.end_time,
-      slot_id: slotId
-    })
-    .eq("id", session.id);
-
-  result.innerText = "Slot booked. Waiting for tutor approval.";
-  loadSlots();
-};
-
-init();
+  init();
 </script>
 
 
