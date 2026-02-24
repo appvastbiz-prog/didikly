@@ -1,87 +1,123 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Tutors – Didikly</title>
+  <title>Available Tutors – Didikly</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body { font-family: system-ui, sans-serif; background:#0f172a; color:#e5e7eb; margin:0; }
-    .container { max-width:720px; margin:0 auto; padding:24px; }
+    .container { max-width:900px; margin:0 auto; padding:24px; }
     .topbar { display:flex; justify-content:space-between; margin-bottom:16px; }
-    .card { background:#020617; padding:24px; border-radius:12px; margin-bottom:12px; }
+    .card { background:#020617; padding:20px; border-radius:12px; margin-bottom:16px; }
+    .slot { padding:10px; margin-top:8px; background:#020617; border-radius:8px; cursor:pointer; border:1px solid #1e293b; }
+    .slot:hover { background:#020617; outline:1px solid #38bdf8; }
     a { color:#38bdf8; text-decoration:none; }
     .muted { color:#94a3b8; }
   </style>
 </head>
 <body>
+  <div class="container">
+    <div class="topbar">
+      <a href="/dashboard.html">← Dashboard</a>
+      <a href="/dashboard.html">Home</a>
+    </div>
 
-<div class="container">
+    <h2>Available Tutors</h2>
+    <p class="muted">Click a tutor to view their available slots</p>
 
-  <div class="topbar">
-    <a href="/dashboard.html">← Dashboard</a>
-    <a href="/dashboard.html">Home</a>
+    <p id="loading" class="muted">Loading...</p>
+    <div id="tutorList"></div>
   </div>
 
-  <h2>Available Tutors</h2>
-  <p class="muted">Click a tutor to view their available slots</p>
+  <script type="module">
+    import { supabase } from "./supabase.js";
+    import { requireAuth } from "./guard.js";
 
-  <div id="tutorList"></div>
+    async function init() {
+      const access = await requireAuth(["student"]);
+      if (!access.ok) {
+        document.getElementById("loading").innerText = "Access denied";
+        return;
+      }
 
-</div>
+      document.getElementById("loading").style.display = "none";
+      loadTutors();
+    }
 
-<script type="module">
-import { supabase } from "./supabase.js";
-import { requireAuth } from "./guard.js";
+    async function loadTutors() {
+      const { data: tutors, error } = await supabase
+        .from("profiles")
+        .select("id, first_language, gender, institution")
+        .eq("role", "tutor");
 
-async function init() {
-  const access = await requireAuth(["student"]);
-  if (!access.ok) {
-    document.body.innerHTML = "Access denied";
-    return;
-  }
-  loadTutors();
-}
+      if (error) {
+        document.getElementById("loading").innerText = error.message;
+        return;
+      }
 
-async function loadTutors() {
-  const { data: tutors, error } = await supabase
-    .from("profiles")
-    .select("id, first_language, gender, institution, avg_rating")
-    .eq("role", "tutor");
+      const list = document.getElementById("tutorList");
+      list.innerHTML = "";
 
-  const list = document.getElementById("tutorList");
-  list.innerHTML = "";
+      if (!tutors || tutors.length === 0) {
+        list.innerHTML = "<p class='muted'>No tutors found.</p>";
+        return;
+      }
 
-  if (error) {
-    list.innerHTML = "<p class='muted'>Failed to load tutors.</p>";
-    console.error(error);
-    return;
-  }
+      for (const tutor of tutors) {
+        const card = document.createElement("div");
+        card.className = "card";
 
-  if (!tutors || tutors.length === 0) {
-    list.innerHTML = "<p class='muted'>No tutors available yet.</p>";
-    return;
-  }
+        card.innerHTML = `
+          <strong>Tutor-${tutor.id.slice(-4)}</strong><br>
+          <span class="muted">
+            Institution: ${tutor.institution || "N/A"}<br>
+            Gender: ${tutor.gender || "N/A"}<br>
+            First Language: ${tutor.first_language || "N/A"}
+          </span>
+          <div id="slots-${tutor.id}" class="muted" style="margin-top:12px;">
+            Loading slots...
+          </div>
+        `;
 
-  tutors.forEach(tutor => {
-    const anonName = "Tutor-" + tutor.id.slice(-4);
+        list.appendChild(card);
+        loadSlots(tutor.id);
+      }
+    }
 
-    const card = document.createElement("div");
-    card.className = "card";
-    card.innerHTML = `
-      <strong>${anonName}</strong><br>
-      Mode: ${tutor.mode || "Not set"}<br>
-      Availability: ${tutor.availability || "Not set"}<br>
-      <em>Reviews:</em><br>
-      ${reviewText}
-      <br><br>
-      <a href="/request.html?tutor=${tutor.id}">View available slots</a>
-    `;
+    async function loadSlots(tutorId) {
+      const container = document.getElementById(`slots-${tutorId}`);
 
-    list.appendChild(card);
-  });
-}
+      const { data: slots, error } = await supabase
+        .from("availability_slots")
+        .select("*")
+        .eq("tutor_id", tutorId)
+        .is("booked_session_id", null)
+        .gt("start_time", new Date().toISOString())
+        .order("start_time", { ascending: true });
 
-init();
-</script>
+      if (error) {
+        container.innerText = error.message;
+        return;
+      }
 
+      if (!slots || slots.length === 0) {
+        container.innerHTML = "<p class='muted'>No available slots.</p>";
+        return;
+      }
+
+      container.innerHTML = "<strong>Available Slots:</strong>";
+
+      slots.forEach(slot => {
+        const div = document.createElement("div");
+        div.className = "slot";
+        div.innerText = `${new Date(slot.start_time).toLocaleString()} → ${new Date(slot.end_time).toLocaleString()}`;
+        div.onclick = () => {
+          window.location.href = `/request.html?tutor=${tutorId}&slot=${slot.id}`;
+        };
+        container.appendChild(div);
+      });
+    }
+
+    init();
+  </script>
 </body>
 </html>
