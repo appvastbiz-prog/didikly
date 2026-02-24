@@ -9,9 +9,10 @@
     .topbar { display:flex; justify-content:space-between; margin-bottom:16px; }
     .card { background:#020617; padding:20px; border-radius:12px; margin-bottom:16px; }
     .slot { padding:10px; margin-top:8px; background:#020617; border-radius:8px; cursor:pointer; border:1px solid #1e293b; }
-    .slot:hover { background:#020617; outline:1px solid #38bdf8; }
+    .slot:hover { outline:1px solid #38bdf8; }
     a { color:#38bdf8; text-decoration:none; }
     .muted { color:#94a3b8; }
+    .error { color:#f87171; }
   </style>
 </head>
 <body>
@@ -22,7 +23,7 @@
     </div>
 
     <h2>Available Tutors</h2>
-    <p class="muted">Click a tutor to view their available slots</p>
+    <p class="muted">Click a slot to request a session</p>
 
     <p id="loading" class="muted">Loading...</p>
     <div id="tutorList"></div>
@@ -40,22 +41,22 @@
       }
 
       document.getElementById("loading").style.display = "none";
-      loadTutors();
+      await loadTutors();
     }
 
     async function loadTutors() {
       const { data: tutors, error } = await supabase
         .from("profiles")
-        .select("id, first_language, gender, institution")
+        .select("id, institution, gender, first_language, avg_rating, price")
         .eq("role", "tutor");
-
-      if (error) {
-        document.getElementById("loading").innerText = error.message;
-        return;
-      }
 
       const list = document.getElementById("tutorList");
       list.innerHTML = "";
+
+      if (error) {
+        list.innerHTML = `<p class="error">${error.message}</p>`;
+        return;
+      }
 
       if (!tutors || tutors.length === 0) {
         list.innerHTML = "<p class='muted'>No tutors found.</p>";
@@ -71,7 +72,9 @@
           <span class="muted">
             Institution: ${tutor.institution || "N/A"}<br>
             Gender: ${tutor.gender || "N/A"}<br>
-            First Language: ${tutor.first_language || "N/A"}
+            First Language: ${tutor.first_language || "N/A"}<br>
+            Rating: ${tutor.avg_rating ?? "N/A"}<br>
+            Price: RM ${tutor.price ?? "N/A"} / hour
           </span>
           <div id="slots-${tutor.id}" class="muted" style="margin-top:12px;">
             Loading slots...
@@ -79,23 +82,27 @@
         `;
 
         list.appendChild(card);
-        loadSlots(tutor.id);
+        await loadSlots(tutor.id);
       }
     }
 
     async function loadSlots(tutorId) {
       const container = document.getElementById(`slots-${tutorId}`);
+      container.innerHTML = "<span class='muted'>Loading slots...</span>";
+
+      const nowIso = new Date().toISOString();
 
       const { data: slots, error } = await supabase
         .from("availability_slots")
-        .select("*")
+        .select("id, start_time, end_time, locked_until, booked_session_id")
         .eq("tutor_id", tutorId)
         .is("booked_session_id", null)
-        .gt("start_time", new Date().toISOString())
+        .gt("start_time", nowIso)
+        .or("locked_until.is.null,locked_until.lt.now()")
         .order("start_time", { ascending: true });
 
       if (error) {
-        container.innerText = error.message;
+        container.innerHTML = `<p class="error">${error.message}</p>`;
         return;
       }
 
@@ -111,6 +118,7 @@
         div.className = "slot";
         div.innerText = `${new Date(slot.start_time).toLocaleString()} → ${new Date(slot.end_time).toLocaleString()}`;
         div.onclick = () => {
+          // Hand off to request.html which handles Task 6 booking
           window.location.href = `/request.html?tutor=${tutorId}&slot=${slot.id}`;
         };
         container.appendChild(div);
