@@ -1,107 +1,99 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Login & Register</title>
-  <style>
-    body {
-      font-family: Arial;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      background: #f4f4f4;
-    }
-
-    .container {
-      width: 350px;
-      background: white;
-      padding: 30px;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-
-    .tabs {
-      display: flex;
-      margin-bottom: 20px;
-    }
-
-    .tabs button {
-      flex: 1;
-      padding: 10px;
-      border: none;
-      cursor: pointer;
-      background: #eee;
-    }
-
-    .tabs button.active {
-      background: #007bff;
-      color: white;
-    }
-
-    form {
-      display: none;
-    }
-
-    form.active {
-      display: block;
-    }
-
-    input {
-      width: 100%;
-      padding: 10px;
-      margin: 8px 0;
-    }
-
-    button.submit {
-      width: 100%;
-      padding: 10px;
-      background: #007bff;
-      color: white;
-      border: none;
-    }
-  </style>
+  <title>Login - Didikly</title>
 </head>
 <body>
 
-<div class="container">
-  <div class="tabs">
-    <button id="loginTab" class="active">Login</button>
-    <button id="registerTab">Register</button>
-  </div>
+<h2>Authentication</h2>
 
-  <form id="loginForm" class="active">
-    <input type="email" placeholder="Email">
-    <input type="password" placeholder="Password">
-    <button class="submit">Login</button>
+<button onclick="showLogin()">Login</button>
+<button onclick="showRegister()">Register</button>
+
+<hr>
+
+<!-- LOGIN SECTION -->
+<div id="loginSection">
+  <h3>Login</h3>
+  <form id="loginForm">
+    <label>Email:</label><br>
+    <input type="email" id="loginEmail" required><br><br>
+
+    <label>Password:</label><br>
+    <input type="password" id="loginPassword" required><br><br>
+
+    <button type="submit">Login</button>
   </form>
+</div>
 
+<!-- REGISTER SECTION -->
+<div id="registerSection" style="display:none;">
+  <h3>Register</h3>
   <form id="registerForm">
-    <input type="text" placeholder="Full Name">
-    <input type="email" placeholder="Email">
-    <input type="password" placeholder="Password">
-    <button class="submit">Register</button>
+
+    <label>University Email:</label><br>
+    <input type="email" id="regEmail" required><br><br>
+
+    <label>Password:</label><br>
+    <input type="password" id="regPassword" required><br><br>
+
+    <label>Name:</label><br>
+    <input type="text" id="regName" required><br><br>
+
+    <label>Institution:</label><br>
+    <input type="text" id="regInstitution" required><br><br>
+
+    <label>Gender:</label><br>
+    <input type="text" id="regGender" required><br><br>
+
+    <label>Age:</label><br>
+    <input type="number" id="regAge" required><br><br>
+
+    <label>First Language:</label><br>
+    <input type="text" id="regFirstLanguage" required><br><br>
+
+    <button type="submit">Register</button>
   </form>
 </div>
 
 <script>
-  const loginTab = document.getElementById("loginTab");
-  const registerTab = document.getElementById("registerTab");
-  const loginForm = document.getElementById("loginForm");
-  const registerForm = document.getElementById("registerForm");
 
-  loginTab.onclick = () => {
-    loginTab.classList.add("active");
-    registerTab.classList.remove("active");
-    loginForm.classList.add("active");
-    registerForm.classList.remove("active");
-  };
+function showLogin() {
+  document.getElementById("loginSection").style.display = "block";
+  document.getElementById("registerSection").style.display = "none";
+}
 
-  registerTab.onclick = () => {
-    registerTab.classList.add("active");
-    loginTab.classList.remove("active");
-    registerForm.classList.add("active");
-    loginForm.classList.remove("active");
-  };
+function showRegister() {
+  document.getElementById("loginSection").style.display = "none";
+  document.getElementById("registerSection").style.display = "block";
+}
+
+/* Open correct tab based on URL parameter */
+const params = new URLSearchParams(window.location.search);
+const mode = params.get("mode");
+
+if (mode === "register") {
+  showRegister();
+} else {
+  showLogin();
+}
+
+/* UNIVERSITY EMAIL VALIDATION */
+document.getElementById("registerForm").addEventListener("submit", function(e) {
+  const email = document.getElementById("regEmail").value;
+
+  if (!email.endsWith("@utem.edu.my")) {
+    e.preventDefault();
+    alert("Only UTeM university emails are allowed.");
+  }
+});
+
+/* LOGIN SUBMIT HANDLER */
+document.getElementById("loginForm").addEventListener("submit", function(e) {
+  e.preventDefault();
+  alert("Login logic will be connected to Supabase next.");
+});
+
 </script>
 
 </body>
