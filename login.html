@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Login & Register</title>
+  <style>
+    body {
+      font-family: Arial;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #f4f4f4;
+    }
+
+    .container {
+      width: 350px;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
+    .tabs {
+      display: flex;
+      margin-bottom: 20px;
+    }
+
+    .tabs button {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      cursor: pointer;
+      background: #eee;
+    }
+
+    .tabs button.active {
+      background: #007bff;
+      color: white;
+    }
+
+    form {
+      display: none;
+    }
+
+    form.active {
+      display: block;
+    }
+
+    input {
+      width: 100%;
+      padding: 10px;
+      margin: 8px 0;
+    }
+
+    button.submit {
+      width: 100%;
+      padding: 10px;
+      background: #007bff;
+      color: white;
+      border: none;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="tabs">
+    <button id="loginTab" class="active">Login</button>
+    <button id="registerTab">Register</button>
+  </div>
+
+  <form id="loginForm" class="active">
+    <input type="email" placeholder="Email">
+    <input type="password" placeholder="Password">
+    <button class="submit">Login</button>
+  </form>
+
+  <form id="registerForm">
+    <input type="text" placeholder="Full Name">
+    <input type="email" placeholder="Email">
+    <input type="password" placeholder="Password">
+    <button class="submit">Register</button>
+  </form>
+</div>
+
+<script>
+  const loginTab = document.getElementById("loginTab");
+  const registerTab = document.getElementById("registerTab");
+  const loginForm = document.getElementById("loginForm");
+  const registerForm = document.getElementById("registerForm");
+
+  loginTab.onclick = () => {
+    loginTab.classList.add("active");
+    registerTab.classList.remove("active");
+    loginForm.classList.add("active");
+    registerForm.classList.remove("active");
+  };
+
+  registerTab.onclick = () => {
+    registerTab.classList.add("active");
+    loginTab.classList.remove("active");
+    registerForm.classList.add("active");
+    loginForm.classList.remove("active");
+  };
+</script>
+
+</body>
+</html>
