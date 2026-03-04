@@ -56,44 +56,12 @@
   </form>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
+  const supabaseUrl = "YOUR_PROJECT_URL";
+  const supabaseKey = "YOUR_ANON_PUBLIC_KEY";
 
-function showLogin() {
-  document.getElementById("loginSection").style.display = "block";
-  document.getElementById("registerSection").style.display = "none";
-}
-
-function showRegister() {
-  document.getElementById("loginSection").style.display = "none";
-  document.getElementById("registerSection").style.display = "block";
-}
-
-/* Open correct tab based on URL parameter */
-const params = new URLSearchParams(window.location.search);
-const mode = params.get("mode");
-
-if (mode === "register") {
-  showRegister();
-} else {
-  showLogin();
-}
-
-/* UNIVERSITY EMAIL VALIDATION */
-document.getElementById("registerForm").addEventListener("submit", function(e) {
-  const email = document.getElementById("regEmail").value;
-
-  if (!email.endsWith("@utem.edu.my")) {
-    e.preventDefault();
-    alert("Only UTeM university emails are allowed.");
-  }
-});
-
-/* LOGIN SUBMIT HANDLER */
-document.getElementById("loginForm").addEventListener("submit", function(e) {
-  e.preventDefault();
-  alert("Login logic will be connected to Supabase next.");
-});
-
+  const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 </script>
 
 </body>
