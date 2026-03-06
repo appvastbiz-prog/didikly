@@ -32,6 +32,4 @@ function App() {
   )
 }
 
-export default Appgit add .
-git commit -m "Add routes for AuthTest page"
-git push origin HEAD
+export default App
