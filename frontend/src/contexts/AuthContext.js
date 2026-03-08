@@ -79,6 +79,33 @@ export const AuthProvider = ({ children }) => {
     return await supabase.auth.signOut()
   }
 
+  // NEW: Resend confirmation email
+  const resendConfirmation = async (email) => {
+    return await supabase.auth.resend({
+      type: 'signup',
+      email: email,
+      options: {
+        emailRedirectTo: 'https://didikly.com'
+      }
+    })
+  }
+
+  // NEW: Check if email is verified
+  const checkVerification = async () => {
+    if (!user) return false
+    
+    // Refresh the user data to get latest email confirmation status
+    const { data: { user: refreshedUser }, error } = await supabase.auth.getUser()
+    
+    if (error) {
+      console.error('Error checking verification:', error)
+      return false
+    }
+    
+    setUser(refreshedUser)
+    return refreshedUser?.email_confirmed_at ? true : false
+  }
+
   const value = {
     user,
     session,
@@ -87,7 +114,10 @@ export const AuthProvider = ({ children }) => {
     signUp,
     signIn,
     signOut,
-    isTutor: profile?.is_tutor || false
+    resendConfirmation,
+    checkVerification,
+    isTutor: profile?.is_tutor || false,
+    isEmailVerified: user?.email_confirmed_at ? true : false
   }
 
   return (
