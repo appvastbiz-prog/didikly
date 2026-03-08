@@ -79,7 +79,6 @@ export const AuthProvider = ({ children }) => {
     return await supabase.auth.signOut()
   }
 
-  // NEW: Resend confirmation email
   const resendConfirmation = async (email) => {
     return await supabase.auth.resend({
       type: 'signup',
@@ -90,7 +89,6 @@ export const AuthProvider = ({ children }) => {
     })
   }
 
-  // NEW: Check if email is verified
   const checkVerification = async () => {
     if (!user) return false
     
@@ -106,6 +104,13 @@ export const AuthProvider = ({ children }) => {
     return refreshedUser?.email_confirmed_at ? true : false
   }
 
+  // NEW: Reset password function
+  const resetPassword = async (email) => {
+    return await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: 'https://didikly.com/reset-password'
+    })
+  }
+
   const value = {
     user,
     session,
@@ -116,6 +121,7 @@ export const AuthProvider = ({ children }) => {
     signOut,
     resendConfirmation,
     checkVerification,
+    resetPassword,        // Added here
     isTutor: profile?.is_tutor || false,
     isEmailVerified: user?.email_confirmed_at ? true : false
   }
