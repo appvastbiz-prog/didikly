@@ -67,10 +67,10 @@ export default function SignUp() {
       setPassword('')
       setConfirmPassword('')
       
-      // Redirect to login after 5 seconds
+      // Redirect to verification page after 3 seconds
       setTimeout(() => {
-        navigate('/login')
-      }, 5000)
+        navigate('/verify-email')
+      }, 3000)
       
     } catch (error) {
       setMessage({ 
