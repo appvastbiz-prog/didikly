@@ -1,55 +1,81 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { useNavigate, Link } from 'react-router-dom'
-import { supabase } from '../utils/supabase' // Make sure to import this
+import { useNavigate, Link, useLocation } from 'react-router-dom'
+import { supabase } from '../utils/supabase'
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
-  const [isValidToken, setIsValidToken] = useState(true)
+  const [isValidSession, setIsValidSession] = useState(false)
   const [checking, setChecking] = useState(true)
   
   const { updatePassword } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
 
-  // Check if user has a valid reset token/session
   useEffect(() => {
-    const checkSession = async () => {
+    const handlePasswordResetSession = async () => {
+      console.log('Location hash:', location.hash)
+      console.log('Full location:', window.location.href)
+      
       try {
-        console.log('Checking session on reset page...')
-        const { data: { session }, error } = await supabase.auth.getSession()
-        console.log('Session:', session)
-        console.log('Session error:', error)
+        // Check if we have a session first
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+        console.log('Current session:', session)
         
-        if (error) {
-          console.error('Session error:', error)
-          setIsValidToken(false)
-        } else if (!session) {
-          console.log('No session found')
-          setIsValidToken(false)
+        if (sessionError) {
+          console.error('Session error:', sessionError)
+        }
+        
+        // The presence of a session with the user indicates we're in recovery mode
+        if (session?.user) {
+          console.log('Valid session found for user:', session.user.email)
+          setIsValidSession(true)
         } else {
-          console.log('Valid session found for user:', session.user?.email)
-          setIsValidToken(true)
+          // If no session, try to get the token from URL
+          const hashParams = new URLSearchParams(window.location.hash.substring(1))
+          const accessToken = hashParams.get('access_token')
+          const type = hashParams.get('type')
+          
+          console.log('Access token from hash:', accessToken ? 'present' : 'missing')
+          console.log('Type from hash:', type)
+          
+          if (accessToken && type === 'recovery') {
+            // Manually set the session
+            const { data, error } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: hashParams.get('refresh_token') || '',
+            })
+            
+            if (error) {
+              console.error('Error setting session:', error)
+              setIsValidSession(false)
+            } else {
+              console.log('Session set successfully')
+              setIsValidSession(true)
+            }
+          } else {
+            console.log('No valid recovery token found in URL')
+            setIsValidSession(false)
+          }
         }
       } catch (err) {
-        console.error('Exception checking session:', err)
-        setIsValidToken(false)
+        console.error('Exception in session check:', err)
+        setIsValidSession(false)
       } finally {
         setChecking(false)
       }
     }
-    
-    checkSession()
-  }, [])
+
+    handlePasswordResetSession()
+  }, [location])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    console.log('Form submitted')
     setMessage({ type: '', text: '' })
 
-    // Validation
     if (!password || !confirmPassword) {
       setMessage({ type: 'error', text: 'All fields are required' })
       return
@@ -66,11 +92,9 @@ export default function ResetPassword() {
     }
 
     setLoading(true)
-    console.log('Attempting to update password...')
 
     try {
       const { error } = await updatePassword(password)
-      console.log('Update password response:', error ? error : 'Success')
       
       if (error) throw error
       
@@ -79,18 +103,19 @@ export default function ResetPassword() {
         text: 'Password updated successfully! Redirecting to login...' 
       })
       
-      console.log('Password updated, redirecting in 3 seconds...')
+      // Sign out after password change
+      await supabase.auth.signOut()
       
-      // Redirect to login after 3 seconds
+      // Redirect to login
       setTimeout(() => {
         window.location.href = '/login'
-      }, 3000)
+      }, 2000)
       
     } catch (error) {
       console.error('Error updating password:', error)
       setMessage({ 
         type: 'error', 
-        text: error.message || 'Failed to update password. The link may have expired.' 
+        text: error.message || 'Failed to update password. Please request a new reset link.' 
       })
     } finally {
       setLoading(false)
@@ -101,13 +126,13 @@ export default function ResetPassword() {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
-          <p>Checking reset link...</p>
+          <p>Verifying reset link...</p>
         </div>
       </div>
     )
   }
 
-  if (!isValidToken) {
+  if (!isValidSession) {
     return (
       <div style={styles.container}>
         <div style={styles.card}>
