@@ -83,8 +83,7 @@ export default function ResetPassword() {
       
       // Redirect to login after 3 seconds
       setTimeout(() => {
-        console.log('Redirecting now...')
-        navigate('/login')
+        window.location.href = '/login'
       }, 3000)
       
     } catch (error) {
