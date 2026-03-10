@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { useNavigate, Link } from 'react-router-dom'
+import { supabase } from '../utils/supabase' // Make sure to import this
 
 export default function ResetPassword() {
   const [password, setPassword] = useState('')
@@ -8,25 +9,44 @@ export default function ResetPassword() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
   const [isValidToken, setIsValidToken] = useState(true)
+  const [checking, setChecking] = useState(true)
   
-  const { user, updatePassword } = useAuth()
+  const { updatePassword } = useAuth()
   const navigate = useNavigate()
 
   // Check if user has a valid reset token/session
   useEffect(() => {
-    // If there's no user and we're on reset password page,
-    // the token might be invalid or expired
     const checkSession = async () => {
-      const { data: { session }, error } = await supabase.auth.getSession()
-      if (!session || error) {
+      try {
+        console.log('Checking session on reset page...')
+        const { data: { session }, error } = await supabase.auth.getSession()
+        console.log('Session:', session)
+        console.log('Session error:', error)
+        
+        if (error) {
+          console.error('Session error:', error)
+          setIsValidToken(false)
+        } else if (!session) {
+          console.log('No session found')
+          setIsValidToken(false)
+        } else {
+          console.log('Valid session found for user:', session.user?.email)
+          setIsValidToken(true)
+        }
+      } catch (err) {
+        console.error('Exception checking session:', err)
         setIsValidToken(false)
+      } finally {
+        setChecking(false)
       }
     }
+    
     checkSession()
   }, [])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    console.log('Form submitted')
     setMessage({ type: '', text: '' })
 
     // Validation
@@ -46,9 +66,11 @@ export default function ResetPassword() {
     }
 
     setLoading(true)
+    console.log('Attempting to update password...')
 
     try {
       const { error } = await updatePassword(password)
+      console.log('Update password response:', error ? error : 'Success')
       
       if (error) throw error
       
@@ -57,10 +79,15 @@ export default function ResetPassword() {
         text: 'Password updated successfully! Redirecting to login...' 
       })
       
+      console.log('Password updated, redirecting in 3 seconds...')
+      
       // Redirect to login after 3 seconds
-      setTimeout(() => navigate('/login'), 3000)
+      setTimeout(() => {
+        navigate('/login')
+      }, 3000)
       
     } catch (error) {
+      console.error('Error updating password:', error)
       setMessage({ 
         type: 'error', 
         text: error.message || 'Failed to update password. The link may have expired.' 
@@ -68,6 +95,16 @@ export default function ResetPassword() {
     } finally {
       setLoading(false)
     }
+  }
+
+  if (checking) {
+    return (
+      <div style={styles.container}>
+        <div style={styles.card}>
+          <p>Checking reset link...</p>
+        </div>
+      </div>
+    )
   }
 
   if (!isValidToken) {
@@ -78,7 +115,7 @@ export default function ResetPassword() {
           <p style={styles.subtitle}>
             This password reset link is no longer valid. Please request a new one.
           </p>
-          <Link to="/login" style={styles.link}>
+          <Link to="/login" style={{ textDecoration: 'none' }}>
             <button style={styles.button}>Return to Login</button>
           </Link>
         </div>
@@ -148,7 +185,7 @@ export default function ResetPassword() {
   )
 }
 
-// Styles
+// Styles (keep the same as before)
 const styles = {
   container: {
     minHeight: '100vh',
