@@ -5,6 +5,8 @@ import Login from './pages/Login'
 import VerifyEmail from './pages/VerifyEmail'
 import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
+import BecomeTutor from './pages/BecomeTutor'
+import TutorDashboard from './pages/TutorDashboard'
 import AuthTest from './pages/AuthTest'
 import { useAuth } from './contexts/AuthContext'
 import './App.css'
@@ -18,6 +20,21 @@ function ProtectedRoute({ children }) {
   if (!user) return <Navigate to="/signup" />
   
   if (!isEmailVerified) return <Navigate to="/verify-email" />
+  
+  return children
+}
+
+// Tutor-only route
+function TutorRoute({ children }) {
+  const { user, isEmailVerified, profile, loading } = useAuth()
+  
+  if (loading) return <div style={styles.loading}>Loading...</div>
+  
+  if (!user) return <Navigate to="/signup" />
+  
+  if (!isEmailVerified) return <Navigate to="/verify-email" />
+  
+  if (!profile?.is_tutor) return <Navigate to="/dashboard" />
   
   return children
 }
@@ -36,6 +53,16 @@ function App() {
             <ProtectedRoute>
               <Dashboard />
             </ProtectedRoute>
+          } />
+          <Route path="/become-tutor" element={
+            <ProtectedRoute>
+              <BecomeTutor />
+            </ProtectedRoute>
+          } />
+          <Route path="/tutor-dashboard" element={
+            <TutorRoute>
+              <TutorDashboard />
+            </TutorRoute>
           } />
           <Route path="/auth-test" element={<AuthTest />} />
         </Routes>

@@ -36,12 +36,33 @@ export default function Dashboard() {
 
         <div style={styles.nextSteps}>
           <h3>Next Steps</h3>
-          <ul style={styles.stepList}>
-            <li>✨ Complete your profile</li>
-            <li>🔍 Find a tutor (if student)</li>
-            <li>📅 Set your availability (if tutor)</li>
-          </ul>
+          {profile?.is_tutor ? (
+            <ul style={styles.stepList}>
+              <li>📅 <Link to="/set-availability" style={styles.link}>Set your availability</Link></li>
+              <li>✏️ <Link to="/edit-tutor-profile" style={styles.link}>Complete your tutor profile</Link></li>
+              <li>🔍 <Link to="/tutor-dashboard" style={styles.link}>Go to tutor dashboard</Link></li>
+            </ul>
+          ) : (
+            <ul style={styles.stepList}>
+              <li>✨ <Link to="/become-tutor" style={styles.becomeTutorLink}>Become a tutor</Link> and share your language skills</li>
+              <li>🔍 Find a tutor to start learning</li>
+              <li>📚 Book your first lesson</li>
+            </ul>
+          )}
         </div>
+
+        {!profile?.is_tutor && (
+          <div style={styles.becomeTutorSection}>
+            <Link to="/become-tutor" style={{ textDecoration: 'none' }}>
+              <button style={styles.becomeTutorButton}>
+                Become a Tutor
+              </button>
+            </Link>
+            <p style={styles.becomeTutorNote}>
+              Share your language skills and earn money teaching UTeM students
+            </p>
+          </div>
+        )}
 
         <button onClick={handleSignOut} style={styles.signOutButton}>
           Sign Out
@@ -91,6 +112,39 @@ const styles = {
     listStyle: 'none',
     padding: 0,
     margin: '10px 0 0 0'
+  },
+  link: {
+    color: '#4CAF50',
+    textDecoration: 'none'
+  },
+  becomeTutorLink: {
+    color: '#4CAF50',
+    textDecoration: 'none',
+    fontWeight: 'bold'
+  },
+  becomeTutorSection: {
+    textAlign: 'center',
+    marginBottom: '20px',
+    padding: '20px',
+    backgroundColor: '#e3f2fd',
+    borderRadius: '6px'
+  },
+  becomeTutorButton: {
+    backgroundColor: '#4CAF50',
+    color: 'white',
+    padding: '14px 20px',
+    fontSize: '16px',
+    fontWeight: 'bold',
+    border: 'none',
+    borderRadius: '4px',
+    cursor: 'pointer',
+    width: '100%',
+    marginBottom: '10px'
+  },
+  becomeTutorNote: {
+    fontSize: '13px',
+    color: '#0d47a1',
+    margin: 0
   },
   signOutButton: {
     backgroundColor: '#f44336',
