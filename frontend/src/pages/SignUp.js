@@ -16,8 +16,10 @@ export default function SignUp() {
   const allowedDomains = ['utem.edu.my', 'student.utem.edu.my']
 
   const validateEmail = (email) => {
-    const domain = email.split('@')[1]
-    return allowedDomains.includes(domain)
+    // Temporarily disabled - allow all emails for testing
+    // const domain = email.split('@')[1]
+    // return allowedDomains.includes(domain)
+    return true // Allow all emails
   }
 
   const handleSubmit = async (e) => {
@@ -30,13 +32,14 @@ export default function SignUp() {
       return
     }
 
-    if (!validateEmail(email)) {
-      setMessage({ 
-        type: 'error', 
-        text: 'Only UTeM emails (@utem.edu.my or @student.utem.edu.my) are allowed' 
-      })
-      return
-    }
+    // Temporarily disabled email validation
+    // if (!validateEmail(email)) {
+    //   setMessage({ 
+    //     type: 'error', 
+    //     text: 'Only UTeM emails (@utem.edu.my or @student.utem.edu.my) are allowed' 
+    //   })
+    //   return
+    // }
 
     if (password.length < 6) {
       setMessage({ type: 'error', text: 'Password must be at least 6 characters' })
