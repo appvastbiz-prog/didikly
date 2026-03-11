@@ -109,7 +109,7 @@ export default function Login() {
                 required
               />
               <small style={styles.hint}>
-                Any email (testing mode - UTeM restriction disabled)
+                @utem.edu.my or @student.utem.edu.my
               </small>
             </div>
 
