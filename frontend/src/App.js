@@ -7,6 +7,8 @@ import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import BecomeTutor from './pages/BecomeTutor'
 import TutorDashboard from './pages/TutorDashboard'
+import SearchTutors from './pages/SearchTutors'
+import TutorPublicProfile from './pages/TutorPublicProfile'
 import AuthTest from './pages/AuthTest'
 import { useAuth } from './contexts/AuthContext'
 import './App.css'
@@ -44,27 +46,48 @@ function App() {
     <BrowserRouter>
       <div className="App">
         <Routes>
+          {/* Public routes */}
           <Route path="/" element={<Navigate to="/signup" />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/login" element={<Login />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/auth-test" element={<AuthTest />} />
+          
+          {/* Protected routes (require login + email verification) */}
           <Route path="/dashboard" element={
             <ProtectedRoute>
               <Dashboard />
             </ProtectedRoute>
           } />
+          
+          <Route path="/search" element={
+            <ProtectedRoute>
+              <SearchTutors />
+            </ProtectedRoute>
+          } />
+          
+          <Route path="/tutor/:id" element={
+            <ProtectedRoute>
+              <TutorPublicProfile />
+            </ProtectedRoute>
+          } />
+          
           <Route path="/become-tutor" element={
             <ProtectedRoute>
               <BecomeTutor />
             </ProtectedRoute>
           } />
+          
+          {/* Tutor-only routes */}
           <Route path="/tutor-dashboard" element={
             <TutorRoute>
               <TutorDashboard />
             </TutorRoute>
           } />
-          <Route path="/auth-test" element={<AuthTest />} />
+          
+          {/* Catch-all route for 404 - redirect to dashboard */}
+          <Route path="*" element={<Navigate to="/dashboard" />} />
         </Routes>
       </div>
     </BrowserRouter>

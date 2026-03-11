@@ -44,8 +44,8 @@ export default function Dashboard() {
             </ul>
           ) : (
             <ul style={styles.stepList}>
+              <li>🔍 <Link to="/search" style={styles.link}>Find a tutor</Link> to start learning</li>
               <li>✨ <Link to="/become-tutor" style={styles.becomeTutorLink}>Become a tutor</Link> and share your language skills</li>
-              <li>🔍 Find a tutor to start learning</li>
               <li>📚 Book your first lesson</li>
             </ul>
           )}
