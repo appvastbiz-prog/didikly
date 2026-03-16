@@ -24,6 +24,8 @@ export default function BookSession() {
     for (let i = 0; i < 14; i++) {
       const date = new Date()
       date.setDate(date.getDate() + i)
+      // Set to midnight to avoid timezone issues
+      date.setHours(0, 0, 0, 0)
       days.push(date)
     }
     return days
@@ -39,10 +41,13 @@ export default function BookSession() {
 
   useEffect(() => {
     if (selectedDate) {
+      console.log('Date selected:', selectedDate)
       fetchAvailabilityForDate(selectedDate)
-      setDateError('') // Clear any date error when date is selected
+      setDateError('')
+      // Reset selected slot when date changes
+      setSelectedSlot(null)
     }
-  }, [selectedDate, tutor])
+  }, [selectedDate])
 
   const fetchTutorData = async () => {
     try {
@@ -68,6 +73,7 @@ export default function BookSession() {
 
   const fetchAvailabilityForDate = async (dateString) => {
     try {
+      console.log('Fetching availability for date:', dateString)
       const date = new Date(dateString)
       const dayOfWeek = date.getDay()
       
@@ -81,6 +87,7 @@ export default function BookSession() {
         .eq('is_booked', false)
 
       if (error) throw error
+      console.log('Raw availability data:', data)
 
       // Get existing bookings for this date to block taken slots
       const startOfDay = new Date(date)
@@ -98,6 +105,7 @@ export default function BookSession() {
         .in('status', ['approved', 'paid'])
 
       if (bookingError) throw bookingError
+      console.log('Existing bookings:', bookings)
 
       // Convert availability slots to time slots
       const slots = []
@@ -125,6 +133,7 @@ export default function BookSession() {
         }
       })
 
+      console.log('Generated slots:', slots)
       setAvailability(slots)
     } catch (error) {
       console.error('Error fetching availability:', error)
@@ -204,6 +213,12 @@ export default function BookSession() {
     }
   }
 
+  const handleDateChange = (e) => {
+    const value = e.target.value
+    console.log('Date changed to:', value)
+    setSelectedDate(value)
+  }
+
   if (!tutor) {
     return (
       <div style={styles.container}>
@@ -235,23 +250,31 @@ export default function BookSession() {
               <label style={styles.label}>Select Date</label>
               <select 
                 value={selectedDate} 
-                onChange={(e) => setSelectedDate(e.target.value)}
+                onChange={handleDateChange}
                 style={{...styles.select, ...(dateError ? styles.inputError : {})}}
                 required
               >
                 <option value="">Choose a date</option>
-                {getNextDays().map(date => (
-                  <option key={date.toISOString()} value={date.toISOString()}>
-                    {date.toLocaleDateString('en-MY', { 
-                      weekday: 'long', 
-                      year: 'numeric', 
-                      month: 'long', 
-                      day: 'numeric' 
-                    })}
-                  </option>
-                ))}
+                {getNextDays().map(date => {
+                  const dateString = date.toISOString().split('T')[0]
+                  return (
+                    <option key={dateString} value={dateString}>
+                      {date.toLocaleDateString('en-MY', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </option>
+                  )
+                })}
               </select>
               {dateError && <div style={styles.fieldError}>{dateError}</div>}
+              {selectedDate && (
+                <div style={styles.selectedDate}>
+                  Selected: {new Date(selectedDate).toLocaleDateString('en-MY')}
+                </div>
+              )}
             </div>
 
             {/* Time Slot Selection */}
@@ -349,7 +372,7 @@ export default function BookSession() {
             
             <div style={styles.summaryItem}>
               <span>Date:</span>
-              <strong>{new Date(selectedSlot.time).toLocaleDateString('en-MY')}</strong>
+              <strong>{new Date(selectedDate).toLocaleDateString('en-MY')}</strong>
             </div>
             
             <div style={styles.summaryItem}>
@@ -401,7 +424,7 @@ export default function BookSession() {
   )
 }
 
-// Styles
+// Styles (keep the same as before)
 const styles = {
   container: {
     maxWidth: '1200px',
@@ -471,6 +494,11 @@ const styles = {
   fieldError: {
     color: '#f44336',
     fontSize: '12px',
+    marginTop: '5px'
+  },
+  selectedDate: {
+    fontSize: '12px',
+    color: '#4CAF50',
     marginTop: '5px'
   },
   noSlots: {
