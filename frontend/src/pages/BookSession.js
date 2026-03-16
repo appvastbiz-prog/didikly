@@ -17,7 +17,6 @@ export default function BookSession() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
   const [dateError, setDateError] = useState('')
-  const [debugInfo, setDebugInfo] = useState('')
 
   // Get next 14 days
   const getNextDays = () => {
@@ -25,9 +24,20 @@ export default function BookSession() {
     for (let i = 0; i < 14; i++) {
       const date = new Date()
       date.setDate(date.getDate() + i)
-      // Set to midnight to avoid timezone issues
-      date.setHours(0, 0, 0, 0)
-      days.push(date)
+      // Store as YYYY-MM-DD string to avoid timezone issues
+      const year = date.getFullYear()
+      const month = String(date.getMonth() + 1).padStart(2, '0')
+      const day = String(date.getDate()).padStart(2, '0')
+      days.push({
+        dateObj: date,
+        dateString: `${year}-${month}-${day}`,
+        display: date.toLocaleDateString('en-MY', { 
+          weekday: 'long', 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        })
+      })
     }
     return days
   }
@@ -42,7 +52,7 @@ export default function BookSession() {
 
   useEffect(() => {
     if (selectedDate) {
-      console.log('📅 Date selected:', selectedDate)
+      console.log('📅 Date selected (string):', selectedDate)
       fetchAvailabilityForDate(selectedDate)
       setDateError('')
       setSelectedSlot(null)
@@ -51,7 +61,6 @@ export default function BookSession() {
 
   const fetchTutorData = async () => {
     try {
-      console.log('🔍 Fetching tutor data for ID:', tutorId)
       const { data, error } = await supabase
         .from('tutor_profiles')
         .select(`
@@ -66,32 +75,26 @@ export default function BookSession() {
         .single()
 
       if (error) throw error
-      console.log('✅ Tutor data fetched:', data)
       setTutor(data)
     } catch (error) {
-      console.error('❌ Error fetching tutor:', error)
+      console.error('Error fetching tutor:', error)
     }
   }
 
   const fetchAvailabilityForDate = async (dateString) => {
     try {
-      console.log('🔍 Fetching availability for date:', dateString)
+      console.log('🔍 Fetching availability for date string:', dateString)
       
-      // Parse the date
-      const date = new Date(dateString)
+      // Parse the date string (YYYY-MM-DD) directly to avoid timezone issues
+      const [year, month, day] = dateString.split('-').map(Number)
+      const date = new Date(year, month - 1, day) // Month is 0-indexed in JS
+      
+      // Get day of week (0 = Sunday, 1 = Monday, etc.)
       const dayOfWeek = date.getDay()
+      console.log('📆 Date object:', date.toDateString())
       console.log('📆 Day of week:', dayOfWeek, '(', getDayName(dayOfWeek), ')')
       
-      // First, check what availability exists for this tutor
-      const { data: allAvailability, error: allError } = await supabase
-        .from('availability')
-        .select('*')
-        .eq('tutor_profile_id', tutorId)
-
-      if (allError) throw allError
-      console.log('📋 All tutor availability:', allAvailability)
-
-      // Get recurring availability for this specific day of week
+      // Get recurring availability for this day of week
       const { data, error } = await supabase
         .from('availability')
         .select('*')
@@ -101,21 +104,17 @@ export default function BookSession() {
         .eq('is_booked', false)
 
       if (error) throw error
-      console.log('📋 Filtered availability for this day:', data)
+      console.log('📋 Availability data:', data)
 
       if (!data || data.length === 0) {
         console.log('⚠️ No availability found for this day')
         setAvailability([])
-        setDebugInfo(`No slots set for ${getDayName(dayOfWeek)}. Tutor needs to set availability.`)
         return
       }
 
-      // Get existing bookings for this date to block taken slots
-      const startOfDay = new Date(date)
-      startOfDay.setHours(0, 0, 0, 0)
-      
-      const endOfDay = new Date(date)
-      endOfDay.setHours(23, 59, 59, 999)
+      // Get existing bookings for this date
+      const startOfDay = new Date(Date.UTC(year, month - 1, day, 0, 0, 0))
+      const endOfDay = new Date(Date.UTC(year, month - 1, day, 23, 59, 59, 999))
 
       console.log('📅 Checking bookings between:', startOfDay.toISOString(), 'and', endOfDay.toISOString())
 
@@ -133,22 +132,20 @@ export default function BookSession() {
       // Convert availability slots to time slots
       const slots = []
       data.forEach(slot => {
-        console.log('🕐 Processing slot:', slot)
-        
-        // Parse times correctly
         const startHour = parseInt(slot.start_time.split(':')[0])
         const endHour = parseInt(slot.end_time.split(':')[0])
         
         console.log(`⏰ Slot hours: ${startHour}:00 to ${endHour}:00`)
         
         for (let hour = startHour; hour < endHour; hour++) {
-          const slotTime = new Date(date)
-          slotTime.setHours(hour, 0, 0, 0)
+          // Create slot time in local timezone but store as UTC for consistency
+          const slotTime = new Date(year, month - 1, day, hour, 0, 0)
           
           // Check if this hour is already booked
           const isBooked = bookings?.some(booking => {
             const bookingTime = new Date(booking.session_time)
-            return bookingTime.getHours() === hour
+            return bookingTime.getUTCHours() === hour || 
+                   bookingTime.getHours() === hour // Check both just in case
           })
 
           if (!isBooked) {
@@ -157,28 +154,18 @@ export default function BookSession() {
               hour,
               display: `${hour}:00 - ${hour + 1}:00`
             })
-          } else {
-            console.log(`⛔ Hour ${hour}:00 is already booked`)
           }
         }
       })
 
       console.log('✅ Generated slots:', slots)
       setAvailability(slots)
-      
-      if (slots.length === 0) {
-        setDebugInfo('Slots exist but all are booked for this date')
-      } else {
-        setDebugInfo('')
-      }
 
     } catch (error) {
       console.error('❌ Error fetching availability:', error)
-      setDebugInfo(`Error: ${error.message}`)
     }
   }
 
-  // Helper function to get day name
   const getDayName = (dayIndex) => {
     const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
     return days[dayIndex]
@@ -192,11 +179,9 @@ export default function BookSession() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    // Clear previous messages
     setMessage({ type: '', text: '' })
     setDateError('')
 
-    // Validation
     if (!selectedDate) {
       setDateError('Please select a date')
       return
@@ -210,12 +195,19 @@ export default function BookSession() {
     setLoading(true)
 
     try {
-      const sessionTime = selectedSlot.time
+      // Use UTC for database storage
+      const sessionTime = new Date(Date.UTC(
+        selectedSlot.time.getFullYear(),
+        selectedSlot.time.getMonth(),
+        selectedSlot.time.getDate(),
+        selectedSlot.hour,
+        0, 0
+      ))
+      
       const endTime = new Date(sessionTime)
-      endTime.setHours(endTime.getHours() + hours)
+      endTime.setUTCHours(endTime.getUTCHours() + hours)
 
-      // Create booking request
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('bookings')
         .insert([
           {
@@ -232,7 +224,6 @@ export default function BookSession() {
             status: 'pending'
           }
         ])
-        .select()
 
       if (error) throw error
 
@@ -241,7 +232,6 @@ export default function BookSession() {
         text: 'Booking request sent! The tutor will review and approve it soon.' 
       })
 
-      // Redirect to my sessions after 3 seconds
       setTimeout(() => {
         navigate('/my-sessions')
       }, 3000)
@@ -259,9 +249,11 @@ export default function BookSession() {
 
   const handleDateChange = (e) => {
     const value = e.target.value
-    console.log('📅 Date changed to:', value)
+    console.log('📅 Date selected (raw):', value)
     setSelectedDate(value)
   }
+
+  const days = getNextDays()
 
   if (!tutor) {
     return (
@@ -281,7 +273,6 @@ export default function BookSession() {
       </div>
 
       <div style={styles.mainGrid}>
-        {/* Left Column - Booking Form */}
         <div style={styles.bookingForm}>
           <div style={styles.tutorSummary}>
             <h2>Booking with {tutor.display_name ? tutor.profile?.full_name : 'Language Tutor'}</h2>
@@ -289,7 +280,6 @@ export default function BookSession() {
           </div>
 
           <form onSubmit={handleSubmit}>
-            {/* Date Selection */}
             <div style={styles.formSection}>
               <label style={styles.label}>Select Date</label>
               <select 
@@ -299,44 +289,20 @@ export default function BookSession() {
                 required
               >
                 <option value="">Choose a date</option>
-                {getNextDays().map(date => {
-                  const dateString = date.toISOString().split('T')[0]
-                  return (
-                    <option key={dateString} value={dateString}>
-                      {date.toLocaleDateString('en-MY', { 
-                        weekday: 'long', 
-                        year: 'numeric', 
-                        month: 'long', 
-                        day: 'numeric' 
-                      })}
-                    </option>
-                  )
-                })}
+                {days.map(day => (
+                  <option key={day.dateString} value={day.dateString}>
+                    {day.display}
+                  </option>
+                ))}
               </select>
               {dateError && <div style={styles.fieldError}>{dateError}</div>}
-              {selectedDate && (
-                <div style={styles.selectedDate}>
-                  Selected: {new Date(selectedDate).toLocaleDateString('en-MY')}
-                </div>
-              )}
-              {debugInfo && (
-                <div style={styles.debugInfo}>
-                  ℹ️ {debugInfo}
-                </div>
-              )}
             </div>
 
-            {/* Time Slot Selection */}
             {selectedDate && (
               <div style={styles.formSection}>
                 <label style={styles.label}>Select Time Slot</label>
                 {availability.length === 0 ? (
-                  <div>
-                    <p style={styles.noSlots}>No available slots for this date</p>
-                    <p style={styles.hint}>
-                      Try another date or contact the tutor to set availability.
-                    </p>
-                  </div>
+                  <p style={styles.noSlots}>No available slots for this date</p>
                 ) : (
                   <div style={styles.slotGrid}>
                     {availability.map((slot, index) => (
@@ -357,50 +323,47 @@ export default function BookSession() {
               </div>
             )}
 
-            {/* Hours Selection */}
             {selectedSlot && (
-              <div style={styles.formSection}>
-                <label style={styles.label}>Duration (hours)</label>
-                <select 
-                  value={hours} 
-                  onChange={(e) => setHours(parseInt(e.target.value))}
-                  style={styles.select}
-                >
-                  {[1, 2, 3, 4].map(h => (
-                    <option key={h} value={h}>{h} hour{h > 1 ? 's' : ''}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            {/* Teaching Mode */}
-            {selectedSlot && (
-              <div style={styles.formSection}>
-                <label style={styles.label}>Teaching Mode</label>
-                <div style={styles.modeGroup}>
-                  <label style={styles.modeLabel}>
-                    <input
-                      type="radio"
-                      value="video"
-                      checked={teachingMode === 'video'}
-                      onChange={(e) => setTeachingMode(e.target.value)}
-                    />
-                    Video Call (Face visible)
-                  </label>
-                  <label style={styles.modeLabel}>
-                    <input
-                      type="radio"
-                      value="voice"
-                      checked={teachingMode === 'voice'}
-                      onChange={(e) => setTeachingMode(e.target.value)}
-                    />
-                    Voice Call (Audio only)
-                  </label>
+              <>
+                <div style={styles.formSection}>
+                  <label style={styles.label}>Duration (hours)</label>
+                  <select 
+                    value={hours} 
+                    onChange={(e) => setHours(parseInt(e.target.value))}
+                    style={styles.select}
+                  >
+                    {[1, 2, 3, 4].map(h => (
+                      <option key={h} value={h}>{h} hour{h > 1 ? 's' : ''}</option>
+                    ))}
+                  </select>
                 </div>
-              </div>
+
+                <div style={styles.formSection}>
+                  <label style={styles.label}>Teaching Mode</label>
+                  <div style={styles.modeGroup}>
+                    <label style={styles.modeLabel}>
+                      <input
+                        type="radio"
+                        value="video"
+                        checked={teachingMode === 'video'}
+                        onChange={(e) => setTeachingMode(e.target.value)}
+                      />
+                      Video Call
+                    </label>
+                    <label style={styles.modeLabel}>
+                      <input
+                        type="radio"
+                        value="voice"
+                        checked={teachingMode === 'voice'}
+                        onChange={(e) => setTeachingMode(e.target.value)}
+                      />
+                      Voice Call
+                    </label>
+                  </div>
+                </div>
+              </>
             )}
 
-            {/* Main error/success message */}
             {message.text && (
               <div style={message.type === 'error' ? styles.errorBox : styles.successBox}>
                 {message.text}
@@ -413,13 +376,12 @@ export default function BookSession() {
                 style={loading ? styles.buttonDisabled : styles.button}
                 disabled={loading}
               >
-                {loading ? 'Sending Request...' : 'Send Booking Request'}
+                {loading ? 'Sending...' : 'Send Booking Request'}
               </button>
             )}
           </form>
         </div>
 
-        {/* Right Column - Summary */}
         {selectedSlot && (
           <div style={styles.summaryCard}>
             <h3 style={styles.summaryTitle}>Booking Summary</h3>
@@ -457,20 +419,16 @@ export default function BookSession() {
             </div>
             
             <div style={styles.summaryItem}>
-              <span>Platform Fee (10%):</span>
+              <span>Platform Fee:</span>
               <span>RM {(calculateTotal() * 0.1).toFixed(2)}</span>
             </div>
             
             <div style={styles.divider}></div>
             
             <div style={styles.totalItem}>
-              <span>Total to Pay:</span>
+              <span>Total:</span>
               <strong>RM {calculateTotal()}</strong>
             </div>
-            
-            <p style={styles.paymentNote}>
-              You'll only pay after the tutor approves your request.
-            </p>
           </div>
         )}
       </div>
@@ -556,31 +514,13 @@ const styles = {
     fontSize: '12px',
     marginTop: '5px'
   },
-  selectedDate: {
-    fontSize: '12px',
-    color: '#4CAF50',
-    marginTop: '5px'
-  },
-  debugInfo: {
-    fontSize: '12px',
-    color: '#ff9800',
-    marginTop: '5px',
-    padding: '5px',
-    backgroundColor: '#fff3e0',
-    borderRadius: '4px'
-  },
   noSlots: {
     color: '#999',
     fontStyle: 'italic',
-    padding: '10px',
+    padding: '20px',
+    textAlign: 'center',
     backgroundColor: '#f9f9f9',
-    borderRadius: '4px',
-    marginBottom: '5px'
-  },
-  hint: {
-    fontSize: '12px',
-    color: '#666',
-    margin: 0
+    borderRadius: '4px'
   },
   slotGrid: {
     display: 'grid',
@@ -593,7 +533,8 @@ const styles = {
     border: '1px solid #ddd',
     borderRadius: '4px',
     cursor: 'pointer',
-    fontSize: '14px'
+    fontSize: '14px',
+    transition: 'all 0.2s'
   },
   slotButtonSelected: {
     backgroundColor: '#4CAF50',
@@ -644,12 +585,6 @@ const styles = {
     fontSize: '18px',
     fontWeight: 'bold',
     color: '#333'
-  },
-  paymentNote: {
-    fontSize: '12px',
-    color: '#666',
-    marginTop: '15px',
-    fontStyle: 'italic'
   },
   button: {
     width: '100%',
