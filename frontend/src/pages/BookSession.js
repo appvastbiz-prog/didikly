@@ -17,6 +17,7 @@ export default function BookSession() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
   const [dateError, setDateError] = useState('')
+  const [debugInfo, setDebugInfo] = useState('')
 
   // Get next 14 days
   const getNextDays = () => {
@@ -41,16 +42,16 @@ export default function BookSession() {
 
   useEffect(() => {
     if (selectedDate) {
-      console.log('Date selected:', selectedDate)
+      console.log('📅 Date selected:', selectedDate)
       fetchAvailabilityForDate(selectedDate)
       setDateError('')
-      // Reset selected slot when date changes
       setSelectedSlot(null)
     }
   }, [selectedDate])
 
   const fetchTutorData = async () => {
     try {
+      console.log('🔍 Fetching tutor data for ID:', tutorId)
       const { data, error } = await supabase
         .from('tutor_profiles')
         .select(`
@@ -65,19 +66,32 @@ export default function BookSession() {
         .single()
 
       if (error) throw error
+      console.log('✅ Tutor data fetched:', data)
       setTutor(data)
     } catch (error) {
-      console.error('Error fetching tutor:', error)
+      console.error('❌ Error fetching tutor:', error)
     }
   }
 
   const fetchAvailabilityForDate = async (dateString) => {
     try {
-      console.log('Fetching availability for date:', dateString)
+      console.log('🔍 Fetching availability for date:', dateString)
+      
+      // Parse the date
       const date = new Date(dateString)
       const dayOfWeek = date.getDay()
+      console.log('📆 Day of week:', dayOfWeek, '(', getDayName(dayOfWeek), ')')
       
-      // Get recurring availability for this day of week
+      // First, check what availability exists for this tutor
+      const { data: allAvailability, error: allError } = await supabase
+        .from('availability')
+        .select('*')
+        .eq('tutor_profile_id', tutorId)
+
+      if (allError) throw allError
+      console.log('📋 All tutor availability:', allAvailability)
+
+      // Get recurring availability for this specific day of week
       const { data, error } = await supabase
         .from('availability')
         .select('*')
@@ -87,7 +101,14 @@ export default function BookSession() {
         .eq('is_booked', false)
 
       if (error) throw error
-      console.log('Raw availability data:', data)
+      console.log('📋 Filtered availability for this day:', data)
+
+      if (!data || data.length === 0) {
+        console.log('⚠️ No availability found for this day')
+        setAvailability([])
+        setDebugInfo(`No slots set for ${getDayName(dayOfWeek)}. Tutor needs to set availability.`)
+        return
+      }
 
       // Get existing bookings for this date to block taken slots
       const startOfDay = new Date(date)
@@ -95,6 +116,8 @@ export default function BookSession() {
       
       const endOfDay = new Date(date)
       endOfDay.setHours(23, 59, 59, 999)
+
+      console.log('📅 Checking bookings between:', startOfDay.toISOString(), 'and', endOfDay.toISOString())
 
       const { data: bookings, error: bookingError } = await supabase
         .from('bookings')
@@ -105,13 +128,18 @@ export default function BookSession() {
         .in('status', ['approved', 'paid'])
 
       if (bookingError) throw bookingError
-      console.log('Existing bookings:', bookings)
+      console.log('📋 Existing bookings:', bookings)
 
       // Convert availability slots to time slots
       const slots = []
       data.forEach(slot => {
+        console.log('🕐 Processing slot:', slot)
+        
+        // Parse times correctly
         const startHour = parseInt(slot.start_time.split(':')[0])
         const endHour = parseInt(slot.end_time.split(':')[0])
+        
+        console.log(`⏰ Slot hours: ${startHour}:00 to ${endHour}:00`)
         
         for (let hour = startHour; hour < endHour; hour++) {
           const slotTime = new Date(date)
@@ -129,15 +157,31 @@ export default function BookSession() {
               hour,
               display: `${hour}:00 - ${hour + 1}:00`
             })
+          } else {
+            console.log(`⛔ Hour ${hour}:00 is already booked`)
           }
         }
       })
 
-      console.log('Generated slots:', slots)
+      console.log('✅ Generated slots:', slots)
       setAvailability(slots)
+      
+      if (slots.length === 0) {
+        setDebugInfo('Slots exist but all are booked for this date')
+      } else {
+        setDebugInfo('')
+      }
+
     } catch (error) {
-      console.error('Error fetching availability:', error)
+      console.error('❌ Error fetching availability:', error)
+      setDebugInfo(`Error: ${error.message}`)
     }
+  }
+
+  // Helper function to get day name
+  const getDayName = (dayIndex) => {
+    const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+    return days[dayIndex]
   }
 
   const calculateTotal = () => {
@@ -215,7 +259,7 @@ export default function BookSession() {
 
   const handleDateChange = (e) => {
     const value = e.target.value
-    console.log('Date changed to:', value)
+    console.log('📅 Date changed to:', value)
     setSelectedDate(value)
   }
 
@@ -275,6 +319,11 @@ export default function BookSession() {
                   Selected: {new Date(selectedDate).toLocaleDateString('en-MY')}
                 </div>
               )}
+              {debugInfo && (
+                <div style={styles.debugInfo}>
+                  ℹ️ {debugInfo}
+                </div>
+              )}
             </div>
 
             {/* Time Slot Selection */}
@@ -282,7 +331,12 @@ export default function BookSession() {
               <div style={styles.formSection}>
                 <label style={styles.label}>Select Time Slot</label>
                 {availability.length === 0 ? (
-                  <p style={styles.noSlots}>No available slots for this date</p>
+                  <div>
+                    <p style={styles.noSlots}>No available slots for this date</p>
+                    <p style={styles.hint}>
+                      Try another date or contact the tutor to set availability.
+                    </p>
+                  </div>
                 ) : (
                   <div style={styles.slotGrid}>
                     {availability.map((slot, index) => (
@@ -424,7 +478,6 @@ export default function BookSession() {
   )
 }
 
-// Styles (keep the same as before)
 const styles = {
   container: {
     maxWidth: '1200px',
@@ -458,6 +511,13 @@ const styles = {
     borderRadius: '8px',
     boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
     padding: '30px'
+  },
+  card: {
+    backgroundColor: 'white',
+    borderRadius: '8px',
+    boxShadow: '0 2px 10px rgba(0,0,0,0.1)',
+    padding: '40px',
+    textAlign: 'center'
   },
   tutorSummary: {
     borderBottom: '1px solid #eee',
@@ -501,12 +561,26 @@ const styles = {
     color: '#4CAF50',
     marginTop: '5px'
   },
+  debugInfo: {
+    fontSize: '12px',
+    color: '#ff9800',
+    marginTop: '5px',
+    padding: '5px',
+    backgroundColor: '#fff3e0',
+    borderRadius: '4px'
+  },
   noSlots: {
     color: '#999',
     fontStyle: 'italic',
     padding: '10px',
     backgroundColor: '#f9f9f9',
-    borderRadius: '4px'
+    borderRadius: '4px',
+    marginBottom: '5px'
+  },
+  hint: {
+    fontSize: '12px',
+    color: '#666',
+    margin: 0
   },
   slotGrid: {
     display: 'grid',
