@@ -16,8 +16,9 @@ export default function BookSession() {
   const [teachingMode, setTeachingMode] = useState('video')
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState({ type: '', text: '' })
+  const [dateError, setDateError] = useState('')
 
-  // Get next 7 days
+  // Get next 14 days
   const getNextDays = () => {
     const days = []
     for (let i = 0; i < 14; i++) {
@@ -39,6 +40,7 @@ export default function BookSession() {
   useEffect(() => {
     if (selectedDate) {
       fetchAvailabilityForDate(selectedDate)
+      setDateError('') // Clear any date error when date is selected
     }
   }, [selectedDate, tutor])
 
@@ -137,13 +139,22 @@ export default function BookSession() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
+    // Clear previous messages
+    setMessage({ type: '', text: '' })
+    setDateError('')
+
+    // Validation
+    if (!selectedDate) {
+      setDateError('Please select a date')
+      return
+    }
+
     if (!selectedSlot) {
       setMessage({ type: 'error', text: 'Please select a time slot' })
       return
     }
 
     setLoading(true)
-    setMessage({ type: '', text: '' })
 
     try {
       const sessionTime = selectedSlot.time
@@ -163,7 +174,7 @@ export default function BookSession() {
             session_end_time: endTime.toISOString(),
             hourly_rate_at_booking: tutor.hourly_rate,
             total_amount: calculateTotal(),
-            platform_fee: calculateTotal() * 0.1, // 10% platform fee
+            platform_fee: calculateTotal() * 0.1,
             tutor_payout_amount: calculateTotal() * 0.9,
             status: 'pending'
           }
@@ -225,7 +236,7 @@ export default function BookSession() {
               <select 
                 value={selectedDate} 
                 onChange={(e) => setSelectedDate(e.target.value)}
-                style={styles.select}
+                style={{...styles.select, ...(dateError ? styles.inputError : {})}}
                 required
               >
                 <option value="">Choose a date</option>
@@ -240,6 +251,7 @@ export default function BookSession() {
                   </option>
                 ))}
               </select>
+              {dateError && <div style={styles.fieldError}>{dateError}</div>}
             </div>
 
             {/* Time Slot Selection */}
@@ -311,6 +323,7 @@ export default function BookSession() {
               </div>
             )}
 
+            {/* Main error/success message */}
             {message.text && (
               <div style={message.type === 'error' ? styles.errorBox : styles.successBox}>
                 {message.text}
@@ -336,7 +349,7 @@ export default function BookSession() {
             
             <div style={styles.summaryItem}>
               <span>Date:</span>
-              <strong>{new Date(selectedSlot.time).toLocaleDateString()}</strong>
+              <strong>{new Date(selectedSlot.time).toLocaleDateString('en-MY')}</strong>
             </div>
             
             <div style={styles.summaryItem}>
@@ -388,6 +401,7 @@ export default function BookSession() {
   )
 }
 
+// Styles
 const styles = {
   container: {
     maxWidth: '1200px',
@@ -450,6 +464,14 @@ const styles = {
     border: '1px solid #ddd',
     borderRadius: '4px',
     outline: 'none'
+  },
+  inputError: {
+    borderColor: '#f44336'
+  },
+  fieldError: {
+    color: '#f44336',
+    fontSize: '12px',
+    marginTop: '5px'
   },
   noSlots: {
     color: '#999',
