@@ -39,6 +39,7 @@ export default function Dashboard() {
           {profile?.is_tutor ? (
             <ul style={styles.stepList}>
               <li>📅 <Link to="/set-availability" style={styles.link}>Set your availability</Link></li>
+              <li>📋 <Link to="/my-sessions" style={styles.link}>View my sessions</Link></li>
               <li>✏️ <Link to="/edit-tutor-profile" style={styles.link}>Complete your tutor profile</Link></li>
               <li>🔍 <Link to="/tutor-dashboard" style={styles.link}>Go to tutor dashboard</Link></li>
             </ul>

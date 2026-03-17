@@ -12,6 +12,8 @@ import TutorPublicProfile from './pages/TutorPublicProfile'
 import AuthTest from './pages/AuthTest'
 import SetAvailability from './pages/SetAvailability'
 import BookSession from './pages/BookSession'
+import ManageBookings from './pages/ManageBookings'
+import MySessions from './pages/MySessions'
 import { useAuth } from './contexts/AuthContext'
 import './App.css'
 
@@ -72,6 +74,18 @@ function App() {
           <Route path="/book/:tutorId" element={
             <ProtectedRoute>
               <BookSession />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/manage-bookings" element={
+            <TutorRoute>
+              <ManageBookings />
+            </TutorRoute>
+          } />
+
+          <Route path="/my-sessions" element={
+            <ProtectedRoute>
+              <MySessions />
             </ProtectedRoute>
           } />
 
