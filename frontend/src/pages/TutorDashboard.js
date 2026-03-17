@@ -180,7 +180,6 @@ export default function TutorDashboard() {
             <Link to="/set-availability" style={styles.quickLink}>
               <button style={styles.actionButton}>📅 Set Availability</button>
             </Link>
-            // Add this with other quick links
             <Link to="/manage-bookings" style={styles.quickLink}>
               <button style={styles.actionButton}>📋 Manage Bookings</button>
             </Link>
