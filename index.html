@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Didikly - UTeM Language Learning Platform</title>
     <style>
-        /* All your existing styles */
         * {
             margin: 0;
             padding: 0;
@@ -343,88 +342,64 @@
             }
         }
     </style>
-    <!-- Load libraries from unpkg (more reliable for UMD) -->
-    <script src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
-    <script src="https://unpkg.com/react-router-dom@6.8.0/dist/umd/react-router-dom.development.js"></script>
-    <script src="https://unpkg.com/@supabase/supabase-js@2.39.0/dist/umd/supabase.js"></script>
+    <!-- Load production builds (smaller, more reliable) -->
+    <script src="https://cdn.jsdelivr.net/npm/react@18.2.0/umd/react.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-dom@18.2.0/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/react-router-dom@6.8.0/dist/umd/react-router-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.0/dist/umd/supabase.js"></script>
 </head>
 <body>
     <div id="root"></div>
     
     <script>
         (function() {
-            // Wait a bit for scripts to load
+            // Wait for scripts to load
             setTimeout(function() {
                 try {
                     console.log('Checking libraries...');
-                    console.log('React available:', !!window.React);
-                    console.log('ReactDOM available:', !!window.ReactDOM);
-                    console.log('ReactRouterDOM available:', !!window.ReactRouterDOM);
-                    console.log('Supabase available:', !!window.supabase);
+                    console.log('React:', !!window.React);
+                    console.log('ReactDOM:', !!window.ReactDOM);
+                    console.log('ReactRouterDOM:', !!window.ReactRouterDOM);
+                    console.log('Supabase:', !!window.supabase);
                     
                     if (!window.React) throw new Error('React not loaded');
                     if (!window.ReactDOM) throw new Error('ReactDOM not loaded');
                     if (!window.ReactRouterDOM) throw new Error('ReactRouterDOM not loaded');
-                    if (!window.supabase) throw new Error('Supabase not loaded');
                     
-                    const { createElement, useState, useEffect, useContext, createContext } = React;
+                    const { createElement, useState } = React;
                     const { createRoot } = ReactDOM;
+                    const { BrowserRouter, Routes, Route, Link, useNavigate } = ReactRouterDOM;
                     
-                    // ReactRouterDOM should be available as a global
-                    const ReactRouter = window.ReactRouterDOM;
-                    console.log('ReactRouter object:', Object.keys(ReactRouter));
-                    
-                    const { 
-                        BrowserRouter, 
-                        Routes, 
-                        Route, 
-                        Link, 
-                        useNavigate, 
-                        useParams, 
-                        Navigate 
-                    } = ReactRouter;
-                    
-                    // ============================================
-                    // SUPABASE CONFIGURATION
-                    // ============================================
-                    const supabaseUrl = "https://vhfdtequcekmmwoiikhm.supabase.co";
-                    const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZoZmR0ZXF1Y2VrbW13b2lpa2htIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njg2NzI3NDEsImV4cCI6MjA4NDI0ODc0MX0.FWGLnZ4w0BfNwWYb5_MM0n7v2iyojZaRB14BbB7pdKM";
-                    const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-                    
-                    // ============================================
-                    // SIMPLE TEST APP
-                    // ============================================
-                    
-                    // Home Page
+                    // Simple Home component
                     const Home = () => {
+                        const navigate = useNavigate();
                         return createElement('div', { className: 'container' },
-                            createElement('div', { className: 'card', style: { textAlign: 'center', padding: '50px' } },
-                                createElement('h1', null, '🎉 Didikly'),
-                                createElement('p', { style: { fontSize: '18px', margin: '20px 0' } },
+                            createElement('div', { className: 'card', style: { maxWidth: '600px', margin: '50px auto', textAlign: 'center' } },
+                                createElement('h1', { style: { fontSize: '48px', marginBottom: '20px' } }, '🎓 Didikly'),
+                                createElement('p', { style: { fontSize: '18px', marginBottom: '30px', color: '#666' } },
                                     'UTeM Language Learning Platform'
                                 ),
                                 createElement('div', { style: { display: 'flex', gap: '10px', justifyContent: 'center' } },
-                                    createElement(Link, { to: '/signup' },
-                                        createElement('button', { className: 'primary' }, 'Sign Up')
-                                    ),
-                                    createElement(Link, { to: '/login' },
-                                        createElement('button', { className: 'secondary' }, 'Login')
-                                    )
+                                    createElement('button', {
+                                        className: 'primary',
+                                        onClick: () => navigate('/signup')
+                                    }, 'Sign Up'),
+                                    createElement('button', {
+                                        className: 'secondary',
+                                        onClick: () => navigate('/login')
+                                    }, 'Login')
                                 )
                             )
                         );
                     };
                     
-                    // SignUp Page
+                    // SignUp component
                     const SignUp = () => {
                         const navigate = useNavigate();
                         return createElement('div', { className: 'container' },
                             createElement('div', { className: 'card', style: { maxWidth: '400px', margin: '50px auto' } },
-                                createElement('h1', { style: { textAlign: 'center', marginBottom: '20px' } }, 'Sign Up'),
-                                createElement('p', { style: { textAlign: 'center', marginBottom: '20px' } },
-                                    'Sign up page - coming soon'
-                                ),
+                                createElement('h2', { style: { marginBottom: '20px' } }, 'Sign Up'),
+                                createElement('p', { style: { marginBottom: '20px' } }, 'Sign up page - coming soon'),
                                 createElement('button', {
                                     className: 'secondary',
                                     onClick: () => navigate('/')
@@ -433,15 +408,13 @@
                         );
                     };
                     
-                    // Login Page
+                    // Login component
                     const Login = () => {
                         const navigate = useNavigate();
                         return createElement('div', { className: 'container' },
                             createElement('div', { className: 'card', style: { maxWidth: '400px', margin: '50px auto' } },
-                                createElement('h1', { style: { textAlign: 'center', marginBottom: '20px' } }, 'Login'),
-                                createElement('p', { style: { textAlign: 'center', marginBottom: '20px' } },
-                                    'Login page - coming soon'
-                                ),
+                                createElement('h2', { style: { marginBottom: '20px' } }, 'Login'),
+                                createElement('p', { style: { marginBottom: '20px' } }, 'Login page - coming soon'),
                                 createElement('button', {
                                     className: 'secondary',
                                     onClick: () => navigate('/')
@@ -450,9 +423,7 @@
                         );
                     };
                     
-                    // ============================================
-                    // MAIN APP COMPONENT
-                    // ============================================
+                    // Main App
                     const App = () => {
                         return createElement(
                             BrowserRouter,
@@ -462,20 +433,18 @@
                                 null,
                                 createElement(Route, { path: "/", element: createElement(Home) }),
                                 createElement(Route, { path: "/signup", element: createElement(SignUp) }),
-                                createElement(Route, { path: "/login", element: createElement(Login) }),
-                                createElement(Route, { path: "*", element: createElement(Navigate, { to: "/" }) })
+                                createElement(Route, { path: "/login", element: createElement(Login) })
                             )
                         );
                     };
                     
-                    // Render the app
                     const root = createRoot(document.getElementById('root'));
                     root.render(createElement(App));
                     
-                    console.log('App rendered successfully!');
+                    console.log('✅ App loaded successfully!');
                     
                 } catch (error) {
-                    console.error('Failed to start app:', error);
+                    console.error('❌ Failed to start app:', error);
                     document.getElementById('root').innerHTML = `
                         <div class="container">
                             <div class="card" style="text-align: center; color: red; padding: 50px;">
@@ -487,7 +456,7 @@
                         </div>
                     `;
                 }
-            }, 500); // Longer delay to ensure scripts load
+            }, 1000); // 1 second delay to ensure everything loads
         })();
     </script>
 </body>
