@@ -343,14 +343,17 @@
         }
     </style>
         <!-- Load React and ReactDOM first -->
-    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    <!-- Load React Router from jsdelivr (more reliable) -->
-    <script src="https://cdn.jsdelivr.net/npm/react-router-dom@6.3.0/dist/umd/react-router-dom.development.js"></script>
-    <!-- Load Supabase -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-    <!-- Load Babel last -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+        <script src="https://unpkg.com/react@18.2.0/umd/react.development.js"></script>
+        <script src="https://unpkg.com/react-dom@18.2.0/umd/react-dom.development.js"></script>
+        
+        <!-- Load React Router - CORRECT VERSION AND PATH -->
+        <script src="https://unpkg.com/react-router-dom@6.8.0/dist/umd/react-router-dom.development.js"></script>
+        
+        <!-- Load Supabase -->
+        <script src="https://unpkg.com/@supabase/supabase-js@2.39.0/dist/umd/supabase.js"></script>
+        
+        <!-- Load Babel last -->
+        <script src="https://unpkg.com/@babel/standalone@7.22.0/babel.min.js"></script>
 </head>
 <body>
     <div id="root"></div>
